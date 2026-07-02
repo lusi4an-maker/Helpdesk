@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Security.Claims;
 using Helpdesk.Api.Models;
 using Microsoft.AspNetCore.Identity;
+using Scalar.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -84,6 +85,7 @@ app.UseAuthorization();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 
