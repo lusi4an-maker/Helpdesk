@@ -1,0 +1,50 @@
+@Helpdesk.Api_HostAddress = http://localhost:5011
+
+### Health check
+GET {{Helpdesk.Api_HostAddress}}/ping
+Accept: application/json
+
+### OpenAPI spec (JSON)
+GET {{Helpdesk.Api_HostAddress}}/openapi/v1.json
+
+### Crear ticket
+c
+### Ver todos los usuarios
+GET http://localhost:5011/usuarios
+
+###Agrego usuario
+POST http://localhost:5011/usuarios
+Content-Type: application/json
+
+{
+    "nombre": "luch222i123",
+    "email": "luchi1@example.com",
+    "nombrePila": "Luciano2",
+    "apellidoPila": "Test",
+    "passwordhash": "Clave123!212312"
+}
+
+###Modifico usuario
+PUT http://localhost:5011/usuarios/2
+Content-Type: application/json
+
+{
+    "nombre": "luchiModificado",
+    "email": "luchi_nuevo@example.com",
+    "nombrePila": "Luciano",
+    "apellidoPila": "Actualizado",
+    "passwordHash": "NuevaClave123!"
+}
+###Elimino usuario
+DELETE http://localhost:5011/usuarios/999
+
+
+
+###Intento login
+POST http://localhost:5011/auth/login/
+Content-Type: application/json
+
+{
+    "email" : "luchi_nuevo@example.com",
+    "password" : "NuevaClave123!"
+}

@@ -1,0 +1,15 @@
+namespace Helpdesk.Api.Models;
+
+public class Ticket
+{
+    public int Id {get; set;}
+    public string Titulo {get; set;} = "";
+    public string Descripcion {get; set;} = "";
+    public DateTimeOffset FechaCreacion {get; set;} = DateTimeOffset.UtcNow;
+    public int UsuarioCreo {get; set;}
+    public Usuario? AgenteAsignado {get; set;}
+    public int? AgenteAsignadoId {get; set;}
+    public EstadoTicket Estado {get; set;} = EstadoTicket.Abierto;
+    public Usuario? Usuario {get; set;}
+
+}
