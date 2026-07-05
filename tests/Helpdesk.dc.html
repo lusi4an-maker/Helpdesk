@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    ::selection { background: rgba(37,99,235,0.25); }
+    .hd-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+    .hd-scroll::-webkit-scrollbar-thumb { background: rgba(120,120,120,0.35); border-radius: 8px; }
+    .hd-scroll::-webkit-scrollbar-track { background: transparent; }
+    select.hd-select { -webkit-appearance: none; appearance: none; }
+  </style>
+</helmet>
+
+<div style="{{ styles.root }}">
+
+  <!-- ===== CONTROL BAR (prototype meta-controls, not part of product UI) ===== -->
+  <div style="{{ styles.controlBar }}">
+    <div style="{{ styles.controlGroup }}">
+      <span style="{{ styles.controlLabel }}">Helpdesk — Mockup</span>
+    </div>
+    <div style="{{ styles.controlGroup }}">
+      <label style="{{ styles.controlItemLabel }}">Pantalla</label>
+      <select class="hd-select" style="{{ styles.controlSelect }}" value="{{ state.screen }}" onChange="{{ setScreen }}">
+        <option value="login">Login</option>
+        <option value="tickets">Lista de tickets</option>
+        <option value="detail">Detalle de ticket</option>
+        <option value="users">Gestión de usuarios</option>
+      </select>
+    </div>
+    <div style="{{ styles.controlGroup }}">
+      <label style="{{ styles.controlItemLabel }}">Rol</label>
+      <select class="hd-select" style="{{ styles.controlSelect }}" value="{{ state.role }}" onChange="{{ setRole }}">
+        <option value="Cliente">Cliente</option>
+        <option value="Agente">Agente</option>
+        <option value="Analista">Analista</option>
+        <option value="Administrador">Administrador</option>
+        <option value="Gerente">Gerente</option>
+      </select>
+    </div>
+    <div style="{{ styles.controlGroup }}">
+      <label style="{{ styles.controlItemLabel }}">Paleta</label>
+      <div style="{{ styles.variantSwatchRow }}">
+        <button title="A — Azul frío" style="{{ styles.swatchA }}" onClick="{{ setVariantA }}"></button>
+        <button title="B — Violeta cálido" style="{{ styles.swatchB }}" onClick="{{ setVariantB }}"></button>
+        <button title="C — Verde azulado" style="{{ styles.swatchC }}" onClick="{{ setVariantC }}"></button>
+      </div>
+    </div>
+    <div style="{{ styles.controlGroup }}">
+      <button style="{{ styles.themeToggle }}" onClick="{{ toggleTheme }}">{{ themeToggleLabel }}</button>
+    </div>
+  </div>
+
+  <!-- ===== LOGIN SCREEN ===== -->
+  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ styles.loginWrap }}">
+      <div style="{{ styles.loginCard }}">
+        <div style="{{ styles.loginLogoRow }}">
+          <div style="{{ styles.loginLogoMark }}">H</div>
+          <span style="{{ styles.loginLogoText }}">Helpdesk</span>
+        </div>
+        <h1 style="{{ styles.loginTitle }}">Iniciar sesión</h1>
+        <p style="{{ styles.loginSubtitle }}">Ingresá con tu cuenta corporativa para continuar</p>
+
+        <sc-if value="{{ state.loginError }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ styles.loginErrorBox }}">
+            <span style="{{ styles.loginErrorIcon }}">!</span>
+            <span>Email o contraseña incorrectos. Intentá nuevamente.</span>
+          </div>
+        </sc-if>
+
+        <label style="{{ styles.formLabel }}">Email</label>
+        <input style="{{ styles.formInput }}" type="email" placeholder="nombre@empresa.com" value="{{ state.loginEmail }}" onChange="{{ onLoginEmailChange }}" />
+
+        <label style="{{ styles.formLabel }}">Contraseña</label>
+        <input style="{{ styles.formInput }}" type="password" placeholder="••••••••" value="{{ state.loginPassword }}" onChange="{{ onLoginPasswordChange }}" />
+
+        <div style="{{ styles.loginRow }}">
+          <label style="{{ styles.checkboxRow }}">
+            <input type="checkbox" checked="{{ state.rememberMe }}" onChange="{{ toggleRemember }}" />
+            <span>Recordarme</span>
+          </label>
+          <a href="#" style="{{ styles.loginLink }}">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <button style="{{ styles.loginSubmit }}" onClick="{{ onLoginSubmit }}">Ingresar</button>
+        <button style="{{ styles.loginErrorTrigger }}" onClick="{{ toggleLoginError }}">{{ loginErrorTriggerLabel }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== APP SHELL (Tickets / Detail / Users) ===== -->
+  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}"></sc-if>
+  <sc-if value="{{ showAppShell }}" hint-placeholder-val="{{ true }}">
+    <div style="{{ styles.appShell }}">
+
+      <!-- SIDEBAR -->
+      <div style="{{ styles.sidebar }}">
+        <div style="{{ styles.sidebarBrandRow }}">
+          <div style="{{ styles.sidebarLogoMark }}">H</div>
+          <span style="{{ styles.sidebarBrandText }}">Helpdesk</span>
+        </div>
+
+        <div style="{{ styles.sidebarNavSection }}">
+          <button style="{{ styles.navItemActiveTickets }}" onClick="{{ goTickets }}">
+            <span style="{{ styles.navIcon }}">▤</span>
+            <span>Tickets</span>
+          </button>
+          <sc-if value="{{ canSeeUsers }}" hint-placeholder-val="{{ false }}">
+            <button style="{{ styles.navItemActiveUsers }}" onClick="{{ goUsers }}">
+              <span style="{{ styles.navIcon }}">◎</span>
+              <span>Usuarios</span>
+            </button>
+          </sc-if>
+        </div>
+
+        <div style="{{ styles.sidebarFooter }}">
+          <div style="{{ styles.sidebarUserRow }}">
+            <div style="{{ styles.sidebarAvatar }}">{{ currentUserInitials }}</div>
+            <div style="{{ styles.sidebarUserMeta }}">
+              <span style="{{ styles.sidebarUserName }}">{{ currentUserName }}</span>
+              <span style="{{ styles.sidebarUserRole }}">{{ state.role }}</span>
+            </div>
+          </div>
+          <button style="{{ styles.logoutBtn }}" onClick="{{ goLogin }}">
+            <span style="{{ styles.navIcon }}">⏻</span>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT -->
+      <div style="{{ styles.mainCol }}">
+
+        <!-- TICKETS LIST SCREEN -->
+        <sc-if value="{{ showTickets }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ styles.topbar }}">
+            <div>
+              <h1 style="{{ styles.pageTitle }}">Tickets</h1>
+              <p style="{{ styles.pageSubtitle }}">{{ scopeDescription }}</p>
+            </div>
+            <button style="{{ styles.primaryBtn }}" onClick="{{ openNewTicketHint }}">+ Crear ticket nuevo</button>
+          </div>
+
+          <div style="{{ styles.filterBar }}">
+            <label style="{{ styles.filterLabel }}">Estado</label>
+            <select class="hd-select" style="{{ styles.filterSelect }}" value="{{ state.filterStatus }}" onChange="{{ onFilterStatusChange }}">
+              <option value="all">Todos</option>
+              <option value="Abierto">Abierto</option>
+              <option value="En progreso">En progreso</option>
+              <option value="Resuelto">Resuelto</option>
+              <option value="Cerrado">Cerrado</option>
+            </select>
+
+            <sc-if value="{{ canFilterAssignee }}" hint-placeholder-val="{{ false }}">
+              <label style="{{ styles.filterLabel }}">Asignado</label>
+              <select class="hd-select" style="{{ styles.filterSelect }}" value="{{ state.filterAssignee }}" onChange="{{ onFilterAssigneeChange }}">
+                <option value="all">Todos</option>
+                <sc-for list="{{ agentNames }}" as="ag" hint-placeholder-count="3">
+                  <option value="{{ ag }}">{{ ag }}</option>
+                </sc-for>
+              </select>
+            </sc-if>
+
+            <div style="{{ styles.viewToggleWrap }}">
+              <button style="{{ styles.viewToggleTable }}" onClick="{{ setViewTable }}">▤ Tabla</button>
+              <button style="{{ styles.viewToggleCards }}" onClick="{{ setViewCards }}">▦ Tarjetas</button>
+            </div>
+          </div>
+
+          <div style="{{ styles.listArea }}" class="hd-scroll">
+
+            <sc-if value="{{ isTableView }}" hint-placeholder-val="{{ true }}">
+              <table style="{{ styles.table }}">
+                <thead>
+                  <tr>
+                    <th style="{{ styles.th }}">Ticket</th>
+                    <th style="{{ styles.th }}">Estado</th>
+                    <th style="{{ styles.th }}">Prioridad</th>
+                    <th style="{{ styles.th }}">Cliente</th>
+                    <th style="{{ styles.th }}">Agente</th>
+                    <th style="{{ styles.th }}">Creado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ filteredTickets }}" as="t" hint-placeholder-count="6">
+                    <tr style="{{ styles.tr }}" onClick="{{ t.openDetail }}">
+                      <td style="{{ styles.tdTitle }}">
+                        <span style="{{ styles.tdTicketId }}">{{ t.code }}</span>
+                        <span style="{{ styles.tdTicketTitle }}">{{ t.title }}</span>
+                      </td>
+                      <td style="{{ styles.td }}"><span style="{{ t.statusChipStyle }}">{{ t.status }}</span></td>
+                      <td style="{{ styles.td }}"><span style="{{ t.priorityChipStyle }}">{{ t.priority }}</span></td>
+                      <td style="{{ styles.td }}">{{ t.client }}</td>
+                      <td style="{{ styles.td }}">{{ t.agent }}</td>
+                      <td style="{{ styles.tdMuted }}">{{ t.createdAt }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+              <sc-if value="{{ noTicketsFound }}" hint-placeholder-val="{{ false }}">
+                <div style="{{ styles.emptyState }}">No hay tickets que coincidan con estos filtros.</div>
+              </sc-if>
+            </sc-if>
+
+            <sc-if value="{{ isCardsView }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ styles.cardsGrid }}">
+                <sc-for list="{{ filteredTickets }}" as="t" hint-placeholder-count="6">
+                  <div style="{{ styles.ticketCard }}" onClick="{{ t.openDetail }}">
+                    <div style="{{ styles.ticketCardTop }}">
+                      <span style="{{ styles.tdTicketId }}">{{ t.code }}</span>
+                      <span style="{{ t.priorityChipStyle }}">{{ t.priority }}</span>
+                    </div>
+                    <h3 style="{{ styles.ticketCardTitle }}">{{ t.title }}</h3>
+                    <div style="{{ styles.ticketCardMeta }}">
+                      <span style="{{ t.statusChipStyle }}">{{ t.status }}</span>
+                      <span style="{{ styles.ticketCardDate }}">{{ t.createdAt }}</span>
+                    </div>
+                    <div style="{{ styles.ticketCardFooter }}">
+                      <div style="{{ styles.ticketCardAgentAvatar }}">{{ t.agentInitials }}</div>
+                      <span style="{{ styles.ticketCardAgentName }}">{{ t.agent }}</span>
+                      <span style="{{ styles.ticketCardClientName }}">Cliente: {{ t.client }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+          </div>
+        </sc-if>
+
+        <!-- TICKET DETAIL SCREEN -->
+        <sc-if value="{{ showDetail }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ styles.detailTopbar }}">
+            <button style="{{ styles.backBtn }}" onClick="{{ goTickets }}">← Volver a tickets</button>
+          </div>
+
+          <div style="{{ styles.detailLayout }}" class="hd-scroll">
+            <div style="{{ styles.detailMain }}">
+              <div style="{{ styles.detailHeaderRow }}">
+                <span style="{{ styles.tdTicketId }}">{{ activeTicket.code }}</span>
+                <span style="{{ activeTicket.statusChipStyle }}">{{ activeTicket.status }}</span>
+                <span style="{{ activeTicket.priorityChipStyle }}">{{ activeTicket.priority }}</span>
+              </div>
+              <h1 style="{{ styles.detailTitle }}">{{ activeTicket.title }}</h1>
+              <p style="{{ styles.detailDescription }}">{{ activeTicket.description }}</p>
+
+              <div style="{{ styles.detailInfoGrid }}">
+                <div style="{{ styles.detailInfoItem }}">
+                  <span style="{{ styles.detailInfoLabel }}">Cliente</span>
+                  <span style="{{ styles.detailInfoValue }}">{{ activeTicket.client }}</span>
+                </div>
+                <div style="{{ styles.detailInfoItem }}">
+                  <span style="{{ styles.detailInfoLabel }}">Categoría</span>
+                  <span style="{{ styles.detailInfoValue }}">{{ activeTicket.category }}</span>
+                </div>
+                <div style="{{ styles.detailInfoItem }}">
+                  <span style="{{ styles.detailInfoLabel }}">Creado</span>
+                  <span style="{{ styles.detailInfoValue }}">{{ activeTicket.createdAt }}</span>
+                </div>
+                <div style="{{ styles.detailInfoItem }}">
+                  <span style="{{ styles.detailInfoLabel }}">SLA</span>
+                  <span style="{{ styles.detailInfoValue }}">{{ activeTicket.sla }}</span>
+                </div>
+              </div>
+
+              <h2 style="{{ styles.timelineHeading }}">Historial</h2>
+              <div style="{{ styles.timeline }}">
+                <sc-for list="{{ activeTicket.timeline }}" as="ev" hint-placeholder-count="3">
+                  <div style="{{ styles.timelineItem }}">
+                    <div style="{{ styles.timelineDot }}"></div>
+                    <div style="{{ styles.timelineContent }}">
+                      <div style="{{ styles.timelineMetaRow }}">
+                        <span style="{{ styles.timelineAuthor }}">{{ ev.author }}</span>
+                        <span style="{{ styles.timelineTime }}">{{ ev.time }}</span>
+                      </div>
+                      <p style="{{ styles.timelineText }}">{{ ev.text }}</p>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="{{ styles.commentBox }}">
+                <label style="{{ styles.formLabel }}">Agregar comentario</label>
+                <textarea style="{{ styles.commentTextarea }}" placeholder="Escribí una actualización o respuesta para el cliente…" value="{{ state.newComment }}" onChange="{{ onCommentChange }}"></textarea>
+                <button style="{{ styles.primaryBtn }}" onClick="{{ onAddComment }}">Publicar comentario</button>
+              </div>
+            </div>
+
+            <div style="{{ styles.detailSidebar }}">
+              <sc-if value="{{ canManageTicket }}" hint-placeholder-val="{{ false }}">
+                <div style="{{ styles.sidePanel }}">
+                  <h3 style="{{ styles.sidePanelTitle }}">Gestión</h3>
+                  <label style="{{ styles.formLabel }}">Estado</label>
+                  <select class="hd-select" style="{{ styles.formInput }}" value="{{ activeTicket.status }}" onChange="{{ onStatusChange }}">
+                    <option value="Abierto">Abierto</option>
+                    <option value="En progreso">En progreso</option>
+                    <option value="Resuelto">Resuelto</option>
+                    <option value="Cerrado">Cerrado</option>
+                  </select>
+
+                  <label style="{{ styles.formLabel }}">Agente asignado</label>
+                  <select class="hd-select" style="{{ styles.formInput }}" value="{{ activeTicket.agent }}" onChange="{{ onAgentChange }}">
+                    <sc-for list="{{ agentNames }}" as="ag" hint-placeholder-count="3">
+                      <option value="{{ ag }}">{{ ag }}</option>
+                    </sc-for>
+                  </select>
+                </div>
+              </sc-if>
+
+              <div style="{{ styles.sidePanel }}">
+                <h3 style="{{ styles.sidePanelTitle }}">Participantes</h3>
+                <div style="{{ styles.participantRow }}">
+                  <div style="{{ styles.ticketCardAgentAvatar }}">{{ activeTicket.clientInitials }}</div>
+                  <div style="{{ styles.sidebarUserMeta }}">
+                    <span style="{{ styles.sidebarUserName }}">{{ activeTicket.client }}</span>
+                    <span style="{{ styles.sidebarUserRole }}">Cliente</span>
+                  </div>
+                </div>
+                <div style="{{ styles.participantRow }}">
+                  <div style="{{ styles.ticketCardAgentAvatar }}">{{ activeTicket.agentInitials }}</div>
+                  <div style="{{ styles.sidebarUserMeta }}">
+                    <span style="{{ styles.sidebarUserName }}">{{ activeTicket.agent }}</span>
+                    <span style="{{ styles.sidebarUserRole }}">Agente asignado</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- USERS MANAGEMENT SCREEN -->
+        <sc-if value="{{ showUsers }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ styles.topbar }}">
+            <div>
+              <h1 style="{{ styles.pageTitle }}">Usuarios</h1>
+              <p style="{{ styles.pageSubtitle }}">Administrá cuentas, roles y accesos del sistema</p>
+            </div>
+            <button style="{{ styles.primaryBtn }}" onClick="{{ openNewUserHint }}">+ Crear usuario nuevo</button>
+          </div>
+
+          <div style="{{ styles.listArea }}" class="hd-scroll">
+            <table style="{{ styles.table }}">
+              <thead>
+                <tr>
+                  <th style="{{ styles.th }}">Nombre</th>
+                  <th style="{{ styles.th }}">Email</th>
+                  <th style="{{ styles.th }}">Rol</th>
+                  <th style="{{ styles.th }}">Estado</th>
+                  <th style="{{ styles.th }}">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ usersList }}" as="u" hint-placeholder-count="6">
+                  <tr style="{{ styles.tr }}">
+                    <td style="{{ styles.tdTitle }}">
+                      <div style="{{ styles.ticketCardAgentAvatar }}">{{ u.initials }}</div>
+                      <span style="{{ styles.tdTicketTitle }}">{{ u.name }}</span>
+                    </td>
+                    <td style="{{ styles.tdMuted }}">{{ u.email }}</td>
+                    <td style="{{ styles.td }}">{{ u.role }}</td>
+                    <td style="{{ styles.td }}"><span style="{{ u.statusChipStyle }}">{{ u.statusLabel }}</span></td>
+                    <td style="{{ styles.td }}">
+                      <div style="{{ styles.rowActions }}">
+                        <button style="{{ styles.linkBtn }}" onClick="{{ u.editHint }}">Editar rol/estado</button>
+                        <button style="{{ styles.linkBtn }}" onClick="{{ u.resetHint }}">Resetear acceso</button>
+                      </div>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ state.toast }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ styles.toast }}">{{ state.toast }}</div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const STATUS_KEYS = ['Abierto', 'En progreso', 'Resuelto', 'Cerrado'];
+const PRIORITY_KEYS = ['Baja', 'Media', 'Alta', 'Urgente'];
+
+function initials(name) {
+  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+const RAW_TICKETS = [
+  { id: 1, code: 'HD-1042', title: 'No puedo acceder al portal de facturación', status: 'Abierto', priority: 'Alta', client: 'Marina Costa', agent: 'Luca Ferrari', createdAt: '02 jul 2026', category: 'Accesos', sla: 'Vence en 4h',
+    description: 'Al intentar ingresar al portal de facturación el sistema muestra "credenciales inválidas" aunque la contraseña fue reseteada ayer. Ocurre en Chrome y Edge.',
+    timeline: [
+      { author: 'Marina Costa', time: '02 jul, 09:14', text: 'Creó el ticket.' },
+      { author: 'Luca Ferrari', time: '02 jul, 09:40', text: 'Confirmando con el equipo de accesos, te aviso en breve.' },
+    ] },
+  { id: 2, code: 'HD-1041', title: 'Error 500 al exportar reporte mensual', status: 'En progreso', priority: 'Urgente', client: 'Tomás Herrera', agent: 'Sofía Aguilar', createdAt: '01 jul 2026', category: 'Bug', sla: 'Vencido',
+    description: 'El reporte mensual de consumo falla con error 500 al exportarse en formato PDF. Funciona correctamente en formato Excel.',
+    timeline: [
+      { author: 'Tomás Herrera', time: '01 jul, 14:02', text: 'Creó el ticket.' },
+      { author: 'Sofía Aguilar', time: '01 jul, 15:10', text: 'Reproducido en ambiente de staging. Escalado a backend.' },
+      { author: 'Sofía Aguilar', time: '02 jul, 08:20', text: 'Fix en revisión, se despliega esta tarde.' },
+    ] },
+  { id: 3, code: 'HD-1039', title: 'Solicitud de alta de nuevo usuario en sucursal Rosario', status: 'Resuelto', priority: 'Media', client: 'Carla Núñez', agent: 'Luca Ferrari', createdAt: '29 jun 2026', category: 'Alta de usuario', sla: 'Cumplido',
+    description: 'Se solicita alta de usuario para nuevo empleado del área comercial, sucursal Rosario, con perfil estándar.',
+    timeline: [
+      { author: 'Carla Núñez', time: '29 jun, 10:00', text: 'Creó el ticket.' },
+      { author: 'Luca Ferrari', time: '29 jun, 11:30', text: 'Usuario creado y credenciales enviadas por correo.' },
+      { author: 'Carla Núñez', time: '29 jun, 12:05', text: 'Confirmado, funciona correctamente. Gracias!' },
+    ] },
+  { id: 4, code: 'HD-1035', title: 'Lentitud general en el sistema durante la mañana', status: 'Cerrado', priority: 'Baja', client: 'Marina Costa', agent: 'Sofía Aguilar', createdAt: '25 jun 2026', category: 'Performance', sla: 'Cumplido',
+    description: 'Se reportó lentitud entre las 8 y 10am. El equipo de infraestructura identificó un pico de carga en el servidor de reportes.',
+    timeline: [
+      { author: 'Marina Costa', time: '25 jun, 08:45', text: 'Creó el ticket.' },
+      { author: 'Sofía Aguilar', time: '25 jun, 16:00', text: 'Se escaló capacidad del servidor. Cerrado por resolución de infraestructura.' },
+    ] },
+  { id: 5, code: 'HD-1044', title: 'Cambio de plan de suscripción no se refleja', status: 'Abierto', priority: 'Media', client: 'Tomás Herrera', agent: 'Nadia Ríos', createdAt: '03 jul 2026', category: 'Facturación', sla: 'Vence en 22h',
+    description: 'Actualicé mi plan a "Empresarial" hace 3 días pero la app sigue mostrando límites del plan anterior.',
+    timeline: [
+      { author: 'Tomás Herrera', time: '03 jul, 11:00', text: 'Creó el ticket.' },
+    ] },
+  { id: 6, code: 'HD-1043', title: 'Integración con Slack deja de notificar', status: 'En progreso', priority: 'Alta', client: 'Carla Núñez', agent: 'Nadia Ríos', createdAt: '02 jul 2026', category: 'Integraciones', sla: 'Vence en 1h',
+    description: 'Las notificaciones de nuevos tickets dejaron de llegar al canal de Slack configurado desde hace 2 días.',
+    timeline: [
+      { author: 'Carla Núñez', time: '02 jul, 09:00', text: 'Creó el ticket.' },
+      { author: 'Nadia Ríos', time: '02 jul, 10:15', text: 'Token de integración expirado, generando uno nuevo.' },
+    ] },
+  { id: 7, code: 'HD-1030', title: 'Duda sobre límites de almacenamiento del plan', status: 'Resuelto', priority: 'Baja', client: 'Marina Costa', agent: 'Luca Ferrari', createdAt: '20 jun 2026', category: 'Consulta', sla: 'Cumplido',
+    description: 'Consulta general sobre el límite de almacenamiento disponible en el plan actual y cómo ampliarlo.',
+    timeline: [
+      { author: 'Marina Costa', time: '20 jun, 09:00', text: 'Creó el ticket.' },
+      { author: 'Luca Ferrari', time: '20 jun, 09:30', text: 'Se envió detalle de planes y precios por correo.' },
+    ] },
+  { id: 8, code: 'HD-1046', title: 'No se pueden adjuntar archivos mayores a 5MB', status: 'Abierto', priority: 'Media', client: 'Tomás Herrera', agent: 'Sofía Aguilar', createdAt: '04 jul 2026', category: 'Bug', sla: 'Vence en 3d',
+    description: 'Al intentar adjuntar un archivo PDF de 6.2MB en un comentario, el sistema no muestra error pero el archivo nunca se sube.',
+    timeline: [
+      { author: 'Tomás Herrera', time: '04 jul, 08:00', text: 'Creó el ticket.' },
+    ] },
+];
+
+const RAW_USERS = [
+  { id: 1, name: 'Luca Ferrari', email: 'luca.ferrari@empresa.com', role: 'Agente', status: 'active' },
+  { id: 2, name: 'Sofía Aguilar', email: 'sofia.aguilar@empresa.com', role: 'Agente', status: 'active' },
+  { id: 3, name: 'Nadia Ríos', email: 'nadia.rios@empresa.com', role: 'Analista', status: 'active' },
+  { id: 4, name: 'Marina Costa', email: 'marina.costa@cliente.com', role: 'Cliente', status: 'active' },
+  { id: 5, name: 'Tomás Herrera', email: 'tomas.herrera@cliente.com', role: 'Cliente', status: 'active' },
+  { id: 6, name: 'Carla Núñez', email: 'carla.nunez@cliente.com', role: 'Cliente', status: 'inactive' },
+  { id: 7, name: 'Diego Salas', email: 'diego.salas@empresa.com', role: 'Administrador', status: 'active' },
+  { id: 8, name: 'Bianca Ortiz', email: 'bianca.ortiz@empresa.com', role: 'Gerente', status: 'active' },
+];
+
+const VARIANTS = {
+  A: { accent: '#2563EB', accentHover: '#1D4ED8', accentActive: '#1E40AF',
+       light: { softBg: '#EFF4FF', softText: '#1D4ED8', bg: '#F7F8FA', surface: '#FFFFFF', border: '#E4E7EC', borderStrong: '#D0D5DD', text: '#101828', textMuted: '#475467', textFaint: '#98A2B3' },
+       dark:  { softBg: '#16223D', softText: '#93B4FF', bg: '#0B0E14', surface: '#12151C', border: '#232733', borderStrong: '#2D3342', text: '#E6E8EC', textMuted: '#94A0B8', textFaint: '#5C6478' } },
+  B: { accent: '#7C5CFC', accentHover: '#6D4CE0', accentActive: '#5B3FC4',
+       light: { softBg: '#F3EFFF', softText: '#6D4CE0', bg: '#FAF9F7', surface: '#FFFFFF', border: '#E8E4DE', borderStrong: '#D8D2C8', text: '#1F1B16', textMuted: '#6B675F', textFaint: '#A39D8F' },
+       dark:  { softBg: '#241D3D', softText: '#C4B5FD', bg: '#14110D', surface: '#1C1814', border: '#2E281F', borderStrong: '#3A3226', text: '#EDE8E0', textMuted: '#A89E8E', textFaint: '#6E6656' } },
+  C: { accent: '#0D9488', accentHover: '#0B7A70', accentActive: '#0A655D',
+       light: { softBg: '#ECFDF9', softText: '#0F766E', bg: '#F6F9F8', surface: '#FFFFFF', border: '#DCE8E6', borderStrong: '#C6D8D5', text: '#0F1E1C', textMuted: '#3F5854', textFaint: '#8FA6A2' },
+       dark:  { softBg: '#0F2A27', softText: '#5EEAD4', bg: '#0A1614', surface: '#0F1E1B', border: '#1E332E', borderStrong: '#294540', text: '#E3EEEC', textMuted: '#7FA39A', textFaint: '#4B665F' } },
+};
+
+const STATUS_COLORS = {
+  'Abierto':     { bgL: '#EFF4FF', textL: '#1D4ED8', bgD: '#16223D', textD: '#93B4FF', dot: '#2563EB' },
+  'En progreso': { bgL: '#FFF7ED', textL: '#9A3412', bgD: '#3A2410', textD: '#FDBA74', dot: '#D97706' },
+  'Resuelto':    { bgL: '#F0FDF4', textL: '#15803D', bgD: '#123420', textD: '#86EFAC', dot: '#16A34A' },
+  'Cerrado':     { bgL: '#F3F4F6', textL: '#374151', bgD: '#25282E', textD: '#B0B5BC', dot: '#6B7280' },
+};
+
+const PRIORITY_COLORS = {
+  'Baja':    { bgL: '#F3F4F6', textL: '#374151', bgD: '#25282E', textD: '#B0B5BC' },
+  'Media':   { bgL: '#EFF4FF', textL: '#1D4ED8', bgD: '#16223D', textD: '#93B4FF' },
+  'Alta':    { bgL: '#FFF3E8', textL: '#B45309', bgD: '#3A2410', textD: '#FDBA74' },
+  'Urgente': { bgL: '#FEF2F2', textL: '#B91C1C', bgD: '#3A1414', textD: '#FCA5A5' },
+};
+
+class Component extends DCLogic {
+  state = {
+    screen: 'tickets',
+    role: 'Administrador',
+    variant: 'A',
+    theme: 'light',
+    view: 'table',
+    filterStatus: 'all',
+    filterAssignee: 'all',
+    selectedTicketId: 3,
+    loginEmail: 'admin@empresa.com',
+    loginPassword: '',
+    loginError: false,
+    rememberMe: true,
+    newComment: '',
+    toast: '',
+    ticketsOverride: {},
+  };
+
+  toast(msg) {
+    this.setState({ toast: msg });
+    setTimeout(() => this.setState({ toast: '' }), 1800);
+  }
+
+  currentUserName() {
+    const byRole = {
+      Cliente: 'Tomás Herrera', Agente: 'Luca Ferrari', Analista: 'Nadia Ríos',
+      Administrador: 'Diego Salas', Gerente: 'Bianca Ortiz',
+    };
+    return byRole[this.state.role] || 'Usuario';
+  }
+
+  getTickets() {
+    return RAW_TICKETS.map(t => {
+      const ov = this.state.ticketsOverride[t.id] || {};
+      return Object.assign({}, t, ov);
+    });
+  }
+
+  scopedTickets() {
+    const all = this.getTickets();
+    const role = this.state.role;
+    const me = this.currentUserName();
+    if (role === 'Cliente') return all.filter(t => t.client === me);
+    if (role === 'Agente' || role === 'Analista') return all.filter(t => t.agent === me);
+    return all;
+  }
+
+  renderVals() {
+    const v = VARIANTS[this.state.variant];
+    const tk = v[this.state.theme];
+    const isDark = this.state.theme === 'dark';
+    const role = this.state.role;
+    const canManage = ['Agente', 'Analista', 'Administrador', 'Gerente'].includes(role);
+    const canSeeUsers = ['Administrador', 'Gerente'].includes(role);
+    const canFilterAssignee = ['Administrador', 'Gerente'].includes(role);
+
+    const font = "'Inter', system-ui, sans-serif";
+    const shadowSm = isDark ? '0 1px 2px rgba(0,0,0,0.4)' : '0 1px 2px rgba(16,24,40,0.05)';
+    const shadowMd = isDark ? '0 4px 16px rgba(0,0,0,0.5)' : '0 4px 16px rgba(16,24,40,0.08)';
+
+    const chip = (bg, text) => ({
+      display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 9px',
+      borderRadius: '999px', fontSize: '12px', fontWeight: 600, background: bg, color: text,
+      whiteSpace: 'nowrap',
+    });
+
+    const statusChipStyle = (status) => {
+      const c = STATUS_COLORS[status];
+      return chip(isDark ? c.bgD : c.bgL, isDark ? c.textD : c.textL);
+    };
+    const priorityChipStyle = (p) => {
+      const c = PRIORITY_COLORS[p];
+      return chip(isDark ? c.bgD : c.bgL, isDark ? c.textD : c.textL);
+    };
+    const userStatusChipStyle = (active) => active
+      ? chip(isDark ? '#123420' : '#F0FDF4', isDark ? '#86EFAC' : '#15803D')
+      : chip(isDark ? '#25282E' : '#F3F4F6', isDark ? '#B0B5BC' : '#374151');
+
+    const scoped = this.scopedTickets();
+    const filtered = scoped.filter(t => {
+      if (this.state.filterStatus !== 'all' && t.status !== this.state.filterStatus) return false;
+      if (canFilterAssignee && this.state.filterAssignee !== 'all' && t.agent !== this.state.filterAssignee) return false;
+      return true;
+    }).map(t => ({
+      ...t,
+      agentInitials: initials(t.agent),
+      statusChipStyle: statusChipStyle(t.status),
+      priorityChipStyle: priorityChipStyle(t.priority),
+      openDetail: () => this.setState({ selectedTicketId: t.id, screen: 'detail' }),
+    }));
+
+    const scopeDescriptions = {
+      Cliente: 'Viendo tus tickets creados',
+      Agente: 'Viendo los tickets asignados a vos',
+      Analista: 'Viendo los tickets asignados a vos',
+      Administrador: 'Viendo todos los tickets del sistema',
+      Gerente: 'Viendo todos los tickets del sistema',
+    };
+
+    const activeTicketRaw = this.getTickets().find(t => t.id === this.state.selectedTicketId) || this.getTickets()[0];
+    const activeTicket = Object.assign({}, activeTicketRaw, {
+      statusChipStyle: statusChipStyle(activeTicketRaw.status),
+      priorityChipStyle: priorityChipStyle(activeTicketRaw.priority),
+      agentInitials: initials(activeTicketRaw.agent),
+      clientInitials: initials(activeTicketRaw.client),
+    });
+
+    const usersList = RAW_USERS.map(u => ({
+      ...u,
+      initials: initials(u.name),
+      statusLabel: u.status === 'active' ? 'Activo' : 'Inactivo',
+      statusChipStyle: userStatusChipStyle(u.status === 'active'),
+      editHint: () => this.toast(`Editar rol/estado de ${u.name} (acción de ejemplo)`),
+      resetHint: () => this.toast(`Acceso reseteado para ${u.name} (acción de ejemplo)`),
+    }));
+
+    const agentNames = [...new Set(RAW_USERS.filter(u => u.role === 'Agente' || u.role === 'Analista').map(u => u.name))];
+
+    // ---------- styles ----------
+    const s = {};
+    s.root = { minHeight: '100vh', background: tk.bg, color: tk.text, fontFamily: font, paddingTop: '52px' };
+
+    s.controlBar = {
+      position: 'fixed', top: 0, left: 0, right: 0, height: '52px', zIndex: 50,
+      background: '#15181F', color: '#E6E8EC', display: 'flex', alignItems: 'center',
+      gap: '28px', padding: '0 20px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+      fontSize: '12.5px', overflowX: 'auto',
+    };
+    s.controlGroup = { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 };
+    s.controlLabel = { fontWeight: 700, fontSize: '13px', letterSpacing: '0.2px', color: '#fff' };
+    s.controlItemLabel = { color: '#8B92A5', fontSize: '11.5px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px' };
+    s.controlSelect = {
+      background: '#20242E', color: '#E6E8EC', border: '1px solid #2E323D', borderRadius: '6px',
+      padding: '5px 9px', fontSize: '12.5px', fontFamily: font, cursor: 'pointer',
+    };
+    s.variantSwatchRow = { display: 'flex', gap: '6px' };
+    const swatchBase = { width: '20px', height: '20px', borderRadius: '999px', border: '2px solid rgba(255,255,255,0.15)', cursor: 'pointer', padding: 0 };
+    s.swatchA = { ...swatchBase, background: VARIANTS.A.accent, boxShadow: this.state.variant === 'A' ? '0 0 0 2px #15181F, 0 0 0 4px #fff' : 'none' };
+    s.swatchB = { ...swatchBase, background: VARIANTS.B.accent, boxShadow: this.state.variant === 'B' ? '0 0 0 2px #15181F, 0 0 0 4px #fff' : 'none' };
+    s.swatchC = { ...swatchBase, background: VARIANTS.C.accent, boxShadow: this.state.variant === 'C' ? '0 0 0 2px #15181F, 0 0 0 4px #fff' : 'none' };
+    s.themeToggle = {
+      background: '#20242E', color: '#E6E8EC', border: '1px solid #2E323D', borderRadius: '6px',
+      padding: '6px 12px', fontSize: '12.5px', fontFamily: font, cursor: 'pointer', fontWeight: 600,
+    };
+
+    // login
+    s.loginWrap = { minHeight: 'calc(100vh - 52px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' };
+    s.loginCard = {
+      width: '400px', maxWidth: '100%', background: tk.surface, border: `1px solid ${tk.border}`,
+      borderRadius: '14px', padding: '36px 32px', boxShadow: shadowMd,
+    };
+    s.loginLogoRow = { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' };
+    s.loginLogoMark = { width: '32px', height: '32px', borderRadius: '8px', background: v.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '16px' };
+    s.loginLogoText = { fontWeight: 700, fontSize: '16px', color: tk.text };
+    s.loginTitle = { fontSize: '22px', fontWeight: 700, margin: '0 0 6px', color: tk.text };
+    s.loginSubtitle = { fontSize: '13.5px', color: tk.textMuted, margin: '0 0 22px', lineHeight: 1.5 };
+    s.loginErrorBox = {
+      display: 'flex', alignItems: 'flex-start', gap: '8px', background: isDark ? '#3A1414' : '#FEF2F2',
+      color: isDark ? '#FCA5A5' : '#B91C1C', border: `1px solid ${isDark ? '#5C2323' : '#FECACA'}`,
+      borderRadius: '8px', padding: '10px 12px', fontSize: '13px', marginBottom: '18px', lineHeight: 1.4,
+    };
+    s.loginErrorIcon = { fontWeight: 800 };
+    s.formLabel = { display: 'block', fontSize: '12.5px', fontWeight: 600, color: tk.textMuted, margin: '14px 0 6px' };
+    s.formInput = {
+      width: '100%', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${tk.border}`,
+      background: isDark ? tk.bg : '#FCFCFD', color: tk.text, fontSize: '14px', fontFamily: font, outline: 'none',
+    };
+    s.loginRow = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '16px 0 22px' };
+    s.checkboxRow = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: tk.textMuted };
+    s.loginLink = { fontSize: '13px', color: v.accent, textDecoration: 'none', fontWeight: 600 };
+    s.loginSubmit = {
+      width: '100%', padding: '11px', borderRadius: '8px', border: 'none', background: v.accent,
+      color: '#fff', fontSize: '14.5px', fontWeight: 700, cursor: 'pointer', fontFamily: font,
+    };
+    s.loginErrorTrigger = {
+      width: '100%', marginTop: '12px', padding: '8px', borderRadius: '8px', border: 'none',
+      background: 'transparent', color: tk.textFaint, fontSize: '12px', cursor: 'pointer', fontFamily: font, textDecoration: 'underline',
+    };
+
+    // app shell
+    s.appShell = { display: 'flex', minHeight: 'calc(100vh - 52px)' };
+    s.sidebar = {
+      width: '236px', flexShrink: 0, background: tk.surface, borderRight: `1px solid ${tk.border}`,
+      display: 'flex', flexDirection: 'column', padding: '20px 14px', position: 'sticky', top: '52px',
+      height: 'calc(100vh - 52px)',
+    };
+    s.sidebarBrandRow = { display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 8px 24px' };
+    s.sidebarLogoMark = { width: '28px', height: '28px', borderRadius: '7px', background: v.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px', flexShrink: 0 };
+    s.sidebarBrandText = { fontWeight: 700, fontSize: '15px', color: tk.text };
+    s.sidebarNavSection = { display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 };
+
+    const navBase = {
+      display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', borderRadius: '8px',
+      border: 'none', background: 'transparent', color: tk.textMuted, fontSize: '13.5px', fontWeight: 500,
+      cursor: 'pointer', fontFamily: font, textAlign: 'left', width: '100%',
+    };
+    const navActive = { background: tk.softBg, color: tk.softText, fontWeight: 700 };
+    s.navItemActiveTickets = this.state.screen === 'tickets' || this.state.screen === 'detail' ? { ...navBase, ...navActive } : navBase;
+    s.navItemActiveUsers = this.state.screen === 'users' ? { ...navBase, ...navActive } : navBase;
+    s.navIcon = { fontSize: '15px', width: '18px', textAlign: 'center' };
+
+    s.sidebarFooter = { borderTop: `1px solid ${tk.border}`, paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' };
+    s.sidebarUserRow = { display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 8px' };
+    s.sidebarAvatar = { width: '32px', height: '32px', borderRadius: '999px', background: tk.softBg, color: tk.softText, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12.5px', flexShrink: 0 };
+    s.sidebarUserMeta = { display: 'flex', flexDirection: 'column', lineHeight: 1.3, minWidth: 0 };
+    s.sidebarUserName = { fontSize: '13px', fontWeight: 600, color: tk.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+    s.sidebarUserRole = { fontSize: '11.5px', color: tk.textFaint };
+    s.logoutBtn = { ...navBase };
+
+    s.mainCol = { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 };
+    s.topbar = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '28px 32px 20px', gap: '20px', flexWrap: 'wrap' };
+    s.pageTitle = { fontSize: '24px', fontWeight: 700, margin: 0, color: tk.text };
+    s.pageSubtitle = { fontSize: '13.5px', color: tk.textMuted, margin: '6px 0 0' };
+    s.primaryBtn = {
+      padding: '10px 16px', borderRadius: '8px', border: 'none', background: v.accent, color: '#fff',
+      fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', fontFamily: font, whiteSpace: 'nowrap', boxShadow: shadowSm,
+    };
+
+    s.filterBar = { display: 'flex', alignItems: 'center', gap: '10px', padding: '0 32px 18px', flexWrap: 'wrap' };
+    s.filterLabel = { fontSize: '12px', fontWeight: 600, color: tk.textFaint, marginLeft: '6px' };
+    s.filterSelect = {
+      background: tk.surface, color: tk.text, border: `1px solid ${tk.border}`, borderRadius: '7px',
+      padding: '7px 10px', fontSize: '13px', fontFamily: font, cursor: 'pointer',
+    };
+    s.viewToggleWrap = { marginLeft: 'auto', display: 'flex', gap: '4px', background: isDark ? tk.bg : '#F1F2F4', padding: '3px', borderRadius: '8px' };
+    const toggleBase = { border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: font, background: 'transparent', color: tk.textMuted };
+    const toggleActive = { background: tk.surface, color: tk.text, boxShadow: shadowSm };
+    s.viewToggleTable = this.state.view === 'table' ? { ...toggleBase, ...toggleActive } : toggleBase;
+    s.viewToggleCards = this.state.view === 'cards' ? { ...toggleBase, ...toggleActive } : toggleBase;
+
+    s.listArea = { flex: 1, padding: '0 32px 32px', overflowY: 'auto' };
+    s.table = { width: '100%', borderCollapse: 'collapse', background: tk.surface, border: `1px solid ${tk.border}`, borderRadius: '10px', overflow: 'hidden', fontSize: '13.5px' };
+    s.th = { textAlign: 'left', padding: '11px 16px', fontSize: '11.5px', fontWeight: 700, color: tk.textFaint, textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: `1px solid ${tk.border}`, background: isDark ? tk.bg : '#FAFAFB' };
+    s.tr = { borderBottom: `1px solid ${tk.border}`, cursor: 'pointer' };
+    s.td = { padding: '13px 16px', color: tk.text, verticalAlign: 'middle' };
+    s.tdMuted = { ...s.td, color: tk.textMuted };
+    s.tdTitle = { ...s.td, display: 'flex', alignItems: 'center', gap: '10px' };
+    s.tdTicketId = { fontFamily: "'JetBrains Mono', monospace", fontSize: '11.5px', color: tk.textFaint, fontWeight: 600, flexShrink: 0 };
+    s.tdTicketTitle = { fontWeight: 600, color: tk.text };
+    s.emptyState = { padding: '40px', textAlign: 'center', color: tk.textFaint, fontSize: '13.5px' };
+
+    s.cardsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' };
+    s.ticketCard = { background: tk.surface, border: `1px solid ${tk.border}`, borderRadius: '10px', padding: '16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: shadowSm };
+    s.ticketCardTop = { display: 'flex', alignItems: 'center', justifyContent: 'space-between' };
+    s.ticketCardTitle = { fontSize: '14.5px', fontWeight: 700, margin: 0, color: tk.text, lineHeight: 1.35 };
+    s.ticketCardMeta = { display: 'flex', alignItems: 'center', justifyContent: 'space-between' };
+    s.ticketCardDate = { fontSize: '12px', color: tk.textFaint };
+    s.ticketCardFooter = { display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '10px', borderTop: `1px solid ${tk.border}` };
+    s.ticketCardAgentAvatar = { width: '24px', height: '24px', borderRadius: '999px', background: tk.softBg, color: tk.softText, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10.5px', flexShrink: 0 };
+    s.ticketCardAgentName = { fontSize: '12.5px', color: tk.textMuted, fontWeight: 600 };
+    s.ticketCardClientName = { fontSize: '12px', color: tk.textFaint, marginLeft: 'auto' };
+
+    // detail
+    s.detailTopbar = { padding: '20px 32px 0' };
+    s.backBtn = { border: 'none', background: 'transparent', color: tk.textMuted, fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: font, padding: '6px 0' };
+    s.detailLayout = { display: 'flex', gap: '24px', padding: '16px 32px 32px', alignItems: 'flex-start', flexWrap: 'wrap' };
+    s.detailMain = { flex: '2 1 480px', minWidth: '320px', background: tk.surface, border: `1px solid ${tk.border}`, borderRadius: '12px', padding: '28px' };
+    s.detailHeaderRow = { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' };
+    s.detailTitle = { fontSize: '21px', fontWeight: 700, margin: '0 0 10px', color: tk.text, lineHeight: 1.3 };
+    s.detailDescription = { fontSize: '14px', color: tk.textMuted, lineHeight: 1.6, margin: '0 0 22px' };
+    s.detailInfoGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '16px', padding: '18px', background: isDark ? tk.bg : '#FAFAFB', borderRadius: '10px', marginBottom: '26px' };
+    s.detailInfoItem = { display: 'flex', flexDirection: 'column', gap: '4px' };
+    s.detailInfoLabel = { fontSize: '11px', fontWeight: 700, color: tk.textFaint, textTransform: 'uppercase', letterSpacing: '0.4px' };
+    s.detailInfoValue = { fontSize: '13.5px', fontWeight: 600, color: tk.text };
+    s.timelineHeading = { fontSize: '15px', fontWeight: 700, color: tk.text, margin: '0 0 14px' };
+    s.timeline = { display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '26px' };
+    s.timelineItem = { display: 'flex', gap: '12px' };
+    s.timelineDot = { width: '8px', height: '8px', borderRadius: '999px', background: v.accent, marginTop: '6px', flexShrink: 0 };
+    s.timelineContent = { flex: 1 };
+    s.timelineMetaRow = { display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '3px' };
+    s.timelineAuthor = { fontSize: '13px', fontWeight: 700, color: tk.text };
+    s.timelineTime = { fontSize: '11.5px', color: tk.textFaint };
+    s.timelineText = { fontSize: '13.5px', color: tk.textMuted, margin: 0, lineHeight: 1.5 };
+    s.commentBox = { borderTop: `1px solid ${tk.border}`, paddingTop: '20px' };
+    s.commentTextarea = { ...s.formInput, minHeight: '80px', resize: 'vertical', marginBottom: '12px', fontFamily: font };
+
+    s.detailSidebar = { flex: '1 1 260px', minWidth: '240px', display: 'flex', flexDirection: 'column', gap: '16px' };
+    s.sidePanel = { background: tk.surface, border: `1px solid ${tk.border}`, borderRadius: '12px', padding: '18px' };
+    s.sidePanelTitle = { fontSize: '13px', fontWeight: 700, color: tk.text, margin: '0 0 14px' };
+    s.participantRow = { display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0' };
+    s.rowActions = { display: 'flex', gap: '14px' };
+    s.linkBtn = { border: 'none', background: 'transparent', color: v.accent, fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: font, padding: 0 };
+
+    s.toast = {
+      position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', background: isDark ? '#fff' : '#101828',
+      color: isDark ? '#101828' : '#fff', padding: '11px 20px', borderRadius: '8px', fontSize: '13.5px', fontWeight: 600,
+      boxShadow: shadowMd, zIndex: 100,
+    };
+
+    return {
+      state: this.state,
+      styles: s,
+      isLogin: this.state.screen === 'login',
+      showAppShell: this.state.screen !== 'login',
+      showTickets: this.state.screen === 'tickets',
+      showDetail: this.state.screen === 'detail',
+      showUsers: this.state.screen === 'users',
+      canSeeUsers,
+      canManageTicket: canManage,
+      canFilterAssignee,
+      isTableView: this.state.view === 'table',
+      isCardsView: this.state.view === 'cards',
+      scopeDescription: scopeDescriptions[role],
+      currentUserName: this.currentUserName(),
+      currentUserInitials: initials(this.currentUserName()),
+      filteredTickets: filtered,
+      noTicketsFound: filtered.length === 0,
+      activeTicket,
+      usersList,
+      agentNames,
+      themeToggleLabel: isDark ? '☀ Claro' : '☾ Oscuro',
+      loginErrorTriggerLabel: this.state.loginError ? 'Ocultar error de ejemplo' : 'Simular error de login',
+
+      setScreen: (e) => this.setState({ screen: e.target.value }),
+      setRole: (e) => {
+        const role = e.target.value;
+        this.setState({ role, filterAssignee: 'all' });
+      },
+      setVariantA: () => this.setState({ variant: 'A' }),
+      setVariantB: () => this.setState({ variant: 'B' }),
+      setVariantC: () => this.setState({ variant: 'C' }),
+      toggleTheme: () => this.setState({ theme: this.state.theme === 'light' ? 'dark' : 'light' }),
+
+      onLoginEmailChange: (e) => this.setState({ loginEmail: e.target.value }),
+      onLoginPasswordChange: (e) => this.setState({ loginPassword: e.target.value }),
+      toggleRemember: () => this.setState({ rememberMe: !this.state.rememberMe }),
+      toggleLoginError: () => this.setState({ loginError: !this.state.loginError }),
+      onLoginSubmit: () => this.setState({ screen: 'tickets', loginError: false }),
+
+      goTickets: () => this.setState({ screen: 'tickets' }),
+      goUsers: () => this.setState({ screen: 'users' }),
+      goLogin: () => this.setState({ screen: 'login' }),
+
+      openNewTicketHint: () => this.toast('Abriría el diálogo "Crear ticket nuevo" (modal de ejemplo)'),
+      openNewUserHint: () => this.toast('Abriría el diálogo "Crear usuario nuevo" (modal de ejemplo)'),
+
+      onFilterStatusChange: (e) => this.setState({ filterStatus: e.target.value }),
+      onFilterAssigneeChange: (e) => this.setState({ filterAssignee: e.target.value }),
+      setViewTable: () => this.setState({ view: 'table' }),
+      setViewCards: () => this.setState({ view: 'cards' }),
+
+      onCommentChange: (e) => this.setState({ newComment: e.target.value }),
+      onAddComment: () => {
+        if (!this.state.newComment.trim()) return;
+        const id = activeTicketRaw.id;
+        const ov = this.state.ticketsOverride[id] || {};
+        const baseline = ov.timeline || activeTicketRaw.timeline;
+        const newTimeline = [...baseline, { author: this.currentUserName(), time: 'ahora', text: this.state.newComment }];
+        this.setState({
+          ticketsOverride: { ...this.state.ticketsOverride, [id]: { ...ov, timeline: newTimeline } },
+          newComment: '',
+        });
+      },
+      onStatusChange: (e) => {
+        const id = activeTicketRaw.id;
+        const ov = this.state.ticketsOverride[id] || {};
+        this.setState({ ticketsOverride: { ...this.state.ticketsOverride, [id]: { ...ov, status: e.target.value } } });
+      },
+      onAgentChange: (e) => {
+        const id = activeTicketRaw.id;
+        const ov = this.state.ticketsOverride[id] || {};
+        this.setState({ ticketsOverride: { ...this.state.ticketsOverride, [id]: { ...ov, agent: e.target.value } } });
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -45,11 +45,33 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+//verifico si esta configurado el setting
+var originString = builder.Configuration["Cors:AllowedOrigin"];
+if (originString != null)
+{
+    //agrego cors para permitir a la api alimentar la web
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(name: "webView", policy =>
+        {
+            policy.WithOrigins(originString)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        });
+    });
+}
+else
+{
+    throw new Exception("La url de la web no esta configurada. Verifique appsettings.json");
+}
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<HelpdeskDbContext>(options =>
     options.UseSqlServer(connectionString));
 var app = builder.Build();
+
+app.UseCors("webView");
 
 app.UseAuthentication();
 app.Use(async (HttpContext http, RequestDelegate next) => 
