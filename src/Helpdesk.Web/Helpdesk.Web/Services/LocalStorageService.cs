@@ -27,7 +27,7 @@ public class LocalStorageService (IJSRuntime js) : ILocalStorageService
         if (string.IsNullOrEmpty(json))
             return default;
 
-        return JsonSerializer.Deserialize<string>(json);
+        return json;
     }
 
     public async Task RemoveItemAsync(string key) 

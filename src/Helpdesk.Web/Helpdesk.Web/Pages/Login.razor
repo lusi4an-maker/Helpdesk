@@ -1,0 +1,44 @@
+﻿@page "/"
+@page "/login"
+@using Helpdesk.Web.Services;
+@using MudBlazor;
+@inject IAuthService AuthService;
+@inject NavigationManager navigationManager;
+@inject MudBlazor.ISnackbar snackbar;
+
+
+<h3>Login</h3>
+
+<MudForm @ref="form" @bind-IsValid="IsValid">
+    <MudTextField T="string" Label="Email" @bind-Value="email" Required="true" RequiredError="El email es obligatorio." />
+    <MudTextField T="string" Label="Contraseña" InputType="InputType.Password" @bind-Value="password" Required="true" RequiredError="Ingrese su contraseña" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync">
+        Iniciar Sesion
+    </MudButton>
+</MudForm>
+
+@code {
+    private MudForm form;
+    private bool IsValid;
+    string email = string.Empty;
+    string password = string.Empty;
+
+    private async Task SubmitAsync()
+    {
+        await form.ValidateAsync();
+
+        if (IsValid)
+        {
+            try
+            {
+                
+                await AuthService.LoginAsync(email, password);
+                navigationManager.NavigateTo("/home");
+            } 
+            catch (Exception ex)
+            {
+                snackbar.Add("Email o contraseña invalidos. Verifique", Severity.Error);
+            }
+        }
+    }
+}
