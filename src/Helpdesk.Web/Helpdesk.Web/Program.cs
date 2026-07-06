@@ -25,7 +25,12 @@ else
 
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>( sp =>
+{
+    var customService = sp.GetRequiredService<CustomAuthenticationStateProvider>();
+    return customService;
+});
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 

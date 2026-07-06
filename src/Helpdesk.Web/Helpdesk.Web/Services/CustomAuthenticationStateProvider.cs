@@ -7,6 +7,7 @@ using System;
 
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Text.Json;
+using System.ComponentModel;
 
 public class CustomAuthenticationStateProvider (ILocalStorageService storage) : AuthenticationStateProvider
 {
@@ -67,6 +68,11 @@ public class CustomAuthenticationStateProvider (ILocalStorageService storage) : 
         }
 
         return claims;
+    }
+
+    public void NotifyAuthChanged()
+    {
+        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }
 
 }
