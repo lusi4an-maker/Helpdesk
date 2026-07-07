@@ -28,23 +28,26 @@ else
     throw new Exception("La Uri base no esta bien configurada. Verifique.");
 }
 
+//Servicio de localstorage
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
-
+//servicios de auth
 builder.Services.AddScoped<IAuthService, AuthService>();
-
+//Custom state
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
-
 builder.Services.AddScoped<AuthenticationStateProvider>( sp =>
 {
     var customService = sp.GetRequiredService<CustomAuthenticationStateProvider>();
     return customService;
 });
-
+//factory el servicio de authheader
 builder.Services.AddScoped(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
     return factory.CreateClient("client");
 });
+//servicio de tickets
+builder.Services.AddScoped<ITicketService, TicketService>();
+
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();

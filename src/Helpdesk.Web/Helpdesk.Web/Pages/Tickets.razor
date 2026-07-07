@@ -1,0 +1,25 @@
+﻿@page "/tickets"
+@using Helpdesk.Web.Services;
+@using Helpdesk.Web.Dtos;
+@using Microsoft.AspNetCore.Components;
+@inject ITicketService ticketService;
+<h3>Tickets</h3>
+
+@if (tickets is null)
+{
+    <p>Cargando...</p>
+} 
+else
+{
+    @tickets.Length
+}
+
+@code {
+    private TicketDto[]? tickets;
+
+    protected override async Task OnInitializedAsync()
+    {
+        tickets = await ticketService.GetTicketsAsync();   
+    }
+
+}

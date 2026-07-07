@@ -1,0 +1,15 @@
+﻿namespace Helpdesk.Web.Dtos;
+
+using Helpdesk.Web.Models;
+
+public class TicketDto
+{
+    public int Id { get; set; }
+    public string Titulo { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+    public DateTimeOffset FechaCreacion { get; set; }
+    public int UsuarioCreo { get; set; }
+    public int? AgenteAsignadoId { get; set; }
+    public EstadoTicket Estado { get; set; }
+
+}
