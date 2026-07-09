@@ -1,25 +1,62 @@
 ﻿@page "/tickets"
 @using Helpdesk.Web.Services;
 @using Helpdesk.Web.Dtos;
+@using Helpdesk.Web.Components;
 @using Microsoft.AspNetCore.Components;
 @inject ITicketService ticketService;
+@inject IDialogService dialogService;
 <h3>Tickets</h3>
 
-@if (tickets is null)
-{
-    <p>Cargando...</p>
-} 
-else
-{
-    @tickets.Length
-}
+<MudTable Items="tickets ?? []" Hover="true" Bordered="true" Loading="tickets is null">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Lista de Tickets</MudText>
+        <MudSpacer/>
+        <MudButton 
+            Variant="Variant.Filled" 
+            Color="Color.Primary" 
+            StartIcon="@Icons.Material.Filled.Add"
+            OnClick="OpenDialogAsync">
+            Nuevo Ticket
+        </MudButton>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Id)">ID</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Titulo)">Titulo</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Descripcion)">Descripcion</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.FechaCreacion)">Fecha de Creacion</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.UsuarioCreo)">Autor</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.AgenteAsignadoId)">Asignado a</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Estado)">Estado</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.Id</MudTd>
+        <MudTd DataLabel="Titulo">@context.Titulo</MudTd>
+        <MudTd DataLabel="Descripcion">@context.Descripcion</MudTd>
+        <MudTd DataLabel="Fecha de Creacion">@context.FechaCreacion</MudTd>
+        <MudTd DataLabel="Autor">@context.UsuarioCreo</MudTd>
+        <MudTd DataLabel="Asignado a">@context.AgenteAsignadoId</MudTd>
+        <MudTd DataLabel="Estado">@context.Estado</MudTd>
+    </RowTemplate>
+    <PagerContent> 
+        <MudTablePager PageSizeOptions="new int[] {5, 10, 25}"/>
+    </PagerContent>
+</MudTable>
 
 @code {
     private TicketDto[]? tickets;
 
+
     protected override async Task OnInitializedAsync()
     {
         tickets = await ticketService.GetTicketsAsync();   
+    }
+
+    private async Task OpenDialogAsync()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var dialog = await dialogService.ShowAsync<CrearTicketDialog>("Nuevo Ticket", options);
+
     }
 
 }
