@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components;
 @inject ITicketService ticketService;
 @inject IDialogService dialogService;
+@inject ISnackbar snackbar;
 <h3>Tickets</h3>
 
 <MudTable Items="tickets ?? []" Hover="true" Bordered="true" Loading="tickets is null">
@@ -36,6 +37,14 @@
         <MudTd DataLabel="Autor">@context.UsuarioCreo</MudTd>
         <MudTd DataLabel="Asignado a">@context.AgenteAsignadoId</MudTd>
         <MudTd DataLabel="Estado">@context.Estado</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Color="Color.Secondary"
+                           OnClick="@(() => ShowUpdateDialogAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           OnClick="@(() => ShowDeleteDialogAsync(context.Id))" />
+        </MudTd>
     </RowTemplate>
     <PagerContent> 
         <MudTablePager PageSizeOptions="new int[] {5, 10, 25}"/>
@@ -57,6 +66,52 @@
 
         var dialog = await dialogService.ShowAsync<CrearTicketDialog>("Nuevo Ticket", options);
 
+        var result = await dialog.Result;
+        if (result?.Data is TicketDto nuevo)
+        {
+            tickets = tickets?.Append(nuevo).ToArray();
+        }
+    }
+
+    private async Task ShowDeleteDialogAsync(int id)
+    {
+        bool? result = await dialogService.ShowMessageBoxAsync(
+        title: "Atencion!",
+        message: "Esta seguro que quiere borrar el ticket?",
+        yesText: "Borrar",
+        cancelText: "Cancel"
+        );
+
+        if (result == true)
+        {
+            var ok = await ticketService.DeleteTicketAsync(id);
+            if (ok == true) 
+            { 
+                tickets = tickets?.Where(t => t.Id != id).ToArray(); 
+            } 
+            else 
+            { 
+                snackbar.Add("No se pudo eliminar el ticket", Severity.Error);
+            }
+
+        }
+    }
+
+    private async Task ShowUpdateDialogAsync(TicketDto ticketAEditar)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<PutTicketDialog> { { x => x.ticket, ticketAEditar } };
+        var dialog = await dialogService.ShowAsync<PutTicketDialog>("Editar ticket", parameters, options);
+
+        var result = await dialog.Result;
+        if (result?.Data is TicketDto edit)
+        {
+            tickets = tickets?.Select(t => t.Id == edit.Id ? edit : t).ToArray();
+        }
+        else
+        {
+            snackbar.Add("No se pudo editar el ticket", Severity.Error);
+        }
     }
 
 }

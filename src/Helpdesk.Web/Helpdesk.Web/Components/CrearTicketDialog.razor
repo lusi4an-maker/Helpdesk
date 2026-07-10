@@ -45,7 +45,8 @@
             } 
             else
             {
-                MudDialog.Close();
+                MudDialog.Close(DialogResult.Ok(created));
+                snackbar.Add("Ticket creado!", Severity.Info);
             }
         }
     }

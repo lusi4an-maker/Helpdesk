@@ -1,0 +1,62 @@
+﻿@using Helpdesk.Web.Dtos;
+@using Helpdesk.Web.Services;
+@inject ITicketService TicketService;
+@inject MudBlazor.ISnackbar snackbar;
+
+
+<MudDialog>
+    <TitleContent>
+        Editar Ticket
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="IsValid">
+            <MudTextField T="string" Label="Titulo" @bind-Value="dto.Titulo" Required="true" RequiredError="Ingrese un titulo"></MudTextField>
+            <MudTextField T="string" Label="Descripcion" @bind-Value="dto.Descripcion" Required="true" RequiredError="Ingrese la descripcion del ticket"></MudTextField>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary">Editar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public TicketDto ticket { get; set; } = new();
+
+    private MudForm form;
+    private bool IsValid;
+    private PutTicketDto dto;
+
+    protected override void OnInitialized()
+    {
+        dto = new PutTicketDto { Titulo = ticket.Titulo, Descripcion = ticket.Descripcion };
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await form.ValidateAsync();
+        if (IsValid)
+        {
+            var id = ticket.Id;
+
+            var edited = await TicketService.UpdateTicketAsync(id, dto);
+                if (edited is null)
+                {
+                    snackbar.Add("Se ha producido un error, intente de nuevo", Severity.Error);
+                } 
+                else
+                {
+                    MudDialog.Close(DialogResult.Ok(edited));
+                    snackbar.Add("Ticket editado!", Severity.Info);
+                }
+        }
+    }
+}
+

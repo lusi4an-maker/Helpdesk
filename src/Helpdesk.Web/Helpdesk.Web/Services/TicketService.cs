@@ -8,6 +8,8 @@ public interface ITicketService
 {
     Task<TicketDto[]> GetTicketsAsync();
     Task<TicketDto?> CreateTicketAsync(CrearTicketDto dto);
+    Task<bool> DeleteTicketAsync(int id);
+    Task<TicketDto?> UpdateTicketAsync(int id, PutTicketDto dto);
 }
 
 public class TicketService(HttpClient http) : ITicketService
@@ -21,6 +23,26 @@ public class TicketService(HttpClient http) : ITicketService
     {
         HttpResponseMessage response = await http.PostAsJsonAsync("tickets",dto);
         if (response.IsSuccessStatusCode) 
+        {
+            var succesful = await response.Content.ReadFromJsonAsync<TicketDto>(JsonConfig.Options);
+            return succesful;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteTicketAsync(int id)
+    {
+        var response = await http.DeleteAsync($"tickets/{id}");
+        return response.IsSuccessStatusCode ? true : false;
+    }
+
+    public async Task<TicketDto?> UpdateTicketAsync(int id, PutTicketDto dto)
+    {
+        var response = await http.PutAsJsonAsync($"tickets/{id}", dto);
+        if (response.IsSuccessStatusCode)
         {
             var succesful = await response.Content.ReadFromJsonAsync<TicketDto>(JsonConfig.Options);
             return succesful;
