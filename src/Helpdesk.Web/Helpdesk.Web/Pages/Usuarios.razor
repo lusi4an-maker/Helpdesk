@@ -1,0 +1,66 @@
+﻿@using Helpdesk.Web.Services;
+@using Helpdesk.Web.Dtos;
+@using Helpdesk.Web.Components;
+
+@inject IUsuarioService usuarioService
+@inject IDialogService dialogService;
+@inject ISnackbar snackbar;
+
+@page "/usuarios"
+
+<MudTable T="UsuarioDto" Items="users ?? []" Hover="true" Bordered="true" Loading="users is null" >
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Usuarios</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenDialogAsync">
+            Usuario
+        </MudButton>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel SortBy="new Func<UsuarioDto, object>(u => u.Id)">Id</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<UsuarioDto, object>(u => u.Nombre)">Usuario</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<UsuarioDto, object>(u => u.Email)">Email</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<UsuarioDto, object>(u => u.NombrePila)">NombrePila</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<UsuarioDto, object>(u => u.ApellidoPila)">ApellidoPila</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<UsuarioDto, object>(u => u.Rol)">Rol</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<UsuarioDto, object>(u => u.Estado)">Estado</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Id">@context.Id</MudTd>
+        <MudTd DataLabel="Usuario">@context.Nombre</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Nombre Pila">@context.NombrePila</MudTd>
+        <MudTd DataLabel="Apellido Pila">@context.ApellidoPila</MudTd>
+        <MudTd DataLabel="Rol">@context.Rol</MudTd>
+        <MudTd DataLabel="Estado">@context.Estado</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] {5, 10, 25}"/>
+    </PagerContent>
+</MudTable>
+
+
+@code {
+    private UsuarioDto[]? users;
+
+    private async Task OpenDialogAsync()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var dialog = await dialogService.ShowAsync<CrearUsuarioDialog>("Nuevo Usuario", options);
+
+        var result = await dialog.Result;
+        if (result?.Data is UsuarioDto nuevo)
+        {
+            users = users?.Append(nuevo).ToArray();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await usuarioService.GetUsuariosAsync();
+    }
+}

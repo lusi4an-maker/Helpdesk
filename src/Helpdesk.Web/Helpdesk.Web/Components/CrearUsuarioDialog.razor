@@ -1,0 +1,62 @@
+﻿@using Helpdesk.Web.Dtos;
+@using Helpdesk.Web.Services;
+@using Helpdesk.Web.Models;
+@inject IUsuarioService usuarioService
+@inject MudBlazor.ISnackbar snackbar
+
+
+<MudDialog>
+    <TitleContent>
+        Nuevo Usuario
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="IsValid">
+            <MudTextField T="string" Label="Nombre de usuario" @bind-Value="dto.Nombre" Required="true" RequiredError="Ingrese el nombre de usuario"/>
+            <MudTextField T="string" Label="Email" @bind-Value="dto.Email" Required="true" RequiredError="Ingrese el Email del usuario" />
+            <MudTextField T="string" Label="Nombre" @bind-Value="dto.NombrePila" Required="true" RequiredError="Ingrese el nombre real del usuario" />
+            <MudTextField T="string" Label="Apellido" @bind-Value="dto.ApellidoPila" Required="true" RequiredError="Ingrese el apellido del usuario" />
+            <MudTextField T="string" Label="Contraseña" @bind-Value="dto.Password" Required="true" RequiredError="Ingrese una contraseña" />
+            <MudSelect T="RolUsuario" Label="Rol" @bind-Value="dto.Rol" Required="true" RequiredError="Debe asignar un rol al usuario" >
+                @foreach (var rol in Enum.GetValues<RolUsuario>())
+                {
+                    <MudSelectItem T="RolUsuario" Value="rol">@rol</MudSelectItem>
+                }    
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary">Crear</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm form;
+    private bool IsValid;
+    private CrearUsuarioDto dto = new();
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        //Espero a que se valide el formuladio
+        await form.ValidateAsync();
+        if (IsValid)
+        {
+            var created = await usuarioService.CreateUsuarioAsync(dto);
+            if (created is null)
+            {
+                snackbar.Add("No se pudo crear el usuario, verifique los campos", Severity.Warning);
+            }
+            else
+            {
+                MudDialog.Close(DialogResult.Ok(created));
+                snackbar.Add("Se ha creado correctamente el usuario", Severity.Info);
+            }
+        }
+    }
+}

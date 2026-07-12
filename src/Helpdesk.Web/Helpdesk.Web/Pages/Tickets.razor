@@ -71,31 +71,6 @@
     private TicketDto[]? tickets;
     private int? editingStateId;
 
-    //Asigno que este editando segun el item que de clic
-    private void SelectedRow(TableRowClickEventArgs<TicketDto> e)
-    {
-        editingStateId = e.Item.Id;
-    }
-
-    //Guardo el estado nuevo
-    private async Task SaveStateAsync(TicketDto ticket, EstadoTicket nuevo)
-    {
-        var dto = new PutTicketStateDto { EstadoTicket = nuevo };
-
-        //Llamo al metodo del servicio para cambiar el estado del ticket
-        var hasUpdated = await ticketService.ChangeTicketStateAsync(ticket.Id, dto);
-        //Si tiene contenido (se actualizo) lo cambio directo al array de la tabla, si no, snackbar de error
-        if (hasUpdated)
-        {
-            ticket.Estado = nuevo;
-            editingStateId = null;
-        } 
-        else
-        {
-            snackbar.Add("No se pudo editar el estado del ticket seleccionado", Severity.Error);
-        }
-    }
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -153,6 +128,31 @@
         else
         {
                 snackbar.Add("No se pudo editar el ticket", Severity.Error);
+        }
+    }
+
+    //Asigno que este editando segun el item que de clic
+    private void SelectedRow(TableRowClickEventArgs<TicketDto> e)
+    {
+        editingStateId = e.Item.Id;
+    }
+
+    //Guardo el estado nuevo
+    private async Task SaveStateAsync(TicketDto ticket, EstadoTicket nuevo)
+    {
+        var dto = new PutTicketStateDto { EstadoTicket = nuevo };
+
+        //Llamo al metodo del servicio para cambiar el estado del ticket
+        var hasUpdated = await ticketService.ChangeTicketStateAsync(ticket.Id, dto);
+        //Si tiene contenido (se actualizo) lo cambio directo al array de la tabla, si no, snackbar de error
+        if (hasUpdated)
+        {
+            ticket.Estado = nuevo;
+            editingStateId = null;
+        }
+        else
+        {
+            snackbar.Add("No se pudo editar el estado del ticket seleccionado", Severity.Error);
         }
     }
 

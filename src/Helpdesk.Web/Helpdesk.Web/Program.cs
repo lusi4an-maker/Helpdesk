@@ -4,6 +4,8 @@ using Helpdesk.Web.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
+
 using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -47,7 +49,8 @@ builder.Services.AddScoped(sp =>
 });
 //servicio de tickets
 builder.Services.AddScoped<ITicketService, TicketService>();
-
+//Servicio de usuarios
+builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
