@@ -14,18 +14,25 @@ public static class UsuariosEndpoints
     {
         var group = app.MapGroup("/usuarios").WithTags("Usuarios").RequireAuthorization();
 
+        //Gets
         group.MapGet("/", GetUsuarios);
         group.MapGet("/{id}", GetUsuarioId);
+        //Post
         group.MapPost("/", PostUsuario)
             .RequireAuthorization("SoloAdmins");
+        //Puts
         group.MapPut("/{id}", PutUsuario)
-            .RequireAuthorization("SoloAdmins");
-        group.MapDelete("/{id}", DeleteUsuario)
             .RequireAuthorization("SoloAdmins");
         group.MapPut("/{id}/email", PutMail)
             .RequireAuthorization("SoloAdmins");
         group.MapPut("/{usuarioId}/status", StatusUser)
             .RequireAuthorization("SoloAdmins");
+        group.MapPut("/{usuarioId}/password", ResetUserPassword)
+            .RequireAuthorization("SoloAdmins");
+        //Deletes
+        group.MapDelete("/{id}", DeleteUsuario)
+            .RequireAuthorization("SoloAdmins");
+        
 
         return app;
     }
@@ -106,7 +113,6 @@ public static class UsuariosEndpoints
         {
             return Results.NotFound();
         }
-        var hasher = new PasswordHasher<Usuario>();
         bool isTaken = await contexto.Usuarios.AnyAsync(u => u.Email == dto.Email && u.Id != id);
 
         if (!isTaken)
@@ -115,7 +121,6 @@ public static class UsuariosEndpoints
             usuario.Email = dto.Email;
             usuario.NombrePila = dto.NombrePila;
             usuario.ApellidoPila = dto.ApellidoPila;
-            usuario.PasswordHash = hasher.HashPassword(usuario, dto.Password);
             await contexto.SaveChangesAsync();
             return Results.NoContent();
         } else
@@ -173,6 +178,22 @@ public static class UsuariosEndpoints
         }
         usuario.Estado = dto.EstadoUsuario.Value;
 
+        await contexto.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ResetUserPassword(int usuarioId, HelpdeskDbContext contexto, ResetPasswordDto dto)
+    {
+        //Busco el usuario, si no existe, not found
+        var usuario = await contexto.Usuarios.FindAsync(usuarioId);
+        if (usuario is null)
+        {
+            return Results.NotFound();
+        }
+        //Instancio el hasher
+        var hasher = new PasswordHasher<Usuario>();
+        //Guardo la contraseña nueva
+        usuario.PasswordHash = hasher.HashPassword(usuario, dto.NewPassword);
         await contexto.SaveChangesAsync();
         return Results.NoContent();
     }
