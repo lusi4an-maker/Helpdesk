@@ -2,13 +2,14 @@
 @using Helpdesk.Web.Services;
 @using Helpdesk.Web.Dtos;
 @using Helpdesk.Web.Components;
+@using Helpdesk.Web.Models;
 @using Microsoft.AspNetCore.Components;
 @inject ITicketService ticketService;
 @inject IDialogService dialogService;
 @inject ISnackbar snackbar;
 <h3>Tickets</h3>
 
-<MudTable Items="tickets ?? []" Hover="true" Bordered="true" Loading="tickets is null">
+<MudTable T="TicketDto" Items="tickets ?? []" Hover="true" Bordered="true" Loading="tickets is null" OnRowClick="SelectedRow" >
     <ToolBarContent>
         <MudText Typo="Typo.h6">Lista de Tickets</MudText>
         <MudSpacer/>
@@ -29,21 +30,36 @@
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.AgenteAsignadoId)">Asignado a</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Estado)">Estado</MudTableSortLabel></MudTh>
     </HeaderContent>
-    <RowTemplate>
+    <RowTemplate >
         <MudTd DataLabel="ID">@context.Id</MudTd>
         <MudTd DataLabel="Titulo">@context.Titulo</MudTd>
         <MudTd DataLabel="Descripcion">@context.Descripcion</MudTd>
         <MudTd DataLabel="Fecha de Creacion">@context.FechaCreacion</MudTd>
         <MudTd DataLabel="Autor">@context.UsuarioCreo</MudTd>
         <MudTd DataLabel="Asignado a">@context.AgenteAsignadoId</MudTd>
-        <MudTd DataLabel="Estado">@context.Estado</MudTd>
-        <MudTd>
+        <MudTd DataLabel="Estado">
+            @if (editingStateId == context.Id)
+            {
+                <MudSelect T="EstadoTicket" Value="context.Estado" ValueChanged="@(async (EstadoTicket nuevo) => await SaveStateAsync(context, nuevo))">
+                    @foreach (var estado in Enum.GetValues<EstadoTicket>())
+                    {
+                        <MudSelectItem T="EstadoTicket" Value="estado">@estado</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else
+            {
+                <MudChip T="EstadoTicket">@context.Estado</MudChip>
+            }
+
+        </MudTd>   
+        <MudTd @onclick:stopPropagation="true">
             <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                           Color="Color.Secondary"
-                           OnClick="@(() => ShowUpdateDialogAsync(context))" />
+            Color="Color.Secondary"
+            OnClick="@(() => ShowUpdateDialogAsync(context))"/>
             <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                           Color="Color.Error"
-                           OnClick="@(() => ShowDeleteDialogAsync(context.Id))" />
+            Color="Color.Error"
+            OnClick="@(() => ShowDeleteDialogAsync(context.Id))" />
         </MudTd>
     </RowTemplate>
     <PagerContent> 
@@ -53,6 +69,32 @@
 
 @code {
     private TicketDto[]? tickets;
+    private int? editingStateId;
+
+    //Asigno que este editando segun el item que de clic
+    private void SelectedRow(TableRowClickEventArgs<TicketDto> e)
+    {
+        editingStateId = e.Item.Id;
+    }
+
+    //Guardo el estado nuevo
+    private async Task SaveStateAsync(TicketDto ticket, EstadoTicket nuevo)
+    {
+        var dto = new PutTicketStateDto { EstadoTicket = nuevo };
+
+        //Llamo al metodo del servicio para cambiar el estado del ticket
+        var hasUpdated = await ticketService.ChangeTicketStateAsync(ticket.Id, dto);
+        //Si tiene contenido (se actualizo) lo cambio directo al array de la tabla, si no, snackbar de error
+        if (hasUpdated)
+        {
+            ticket.Estado = nuevo;
+            editingStateId = null;
+        } 
+        else
+        {
+            snackbar.Add("No se pudo editar el estado del ticket seleccionado", Severity.Error);
+        }
+    }
 
 
     protected override async Task OnInitializedAsync()
@@ -69,7 +111,7 @@
         var result = await dialog.Result;
         if (result?.Data is TicketDto nuevo)
         {
-            tickets = tickets?.Append(nuevo).ToArray();
+                tickets = tickets?.Append(nuevo).ToArray();
         }
     }
 
@@ -84,15 +126,15 @@
 
         if (result == true)
         {
-            var ok = await ticketService.DeleteTicketAsync(id);
-            if (ok == true) 
-            { 
-                tickets = tickets?.Where(t => t.Id != id).ToArray(); 
-            } 
-            else 
-            { 
-                snackbar.Add("No se pudo eliminar el ticket", Severity.Error);
-            }
+                var ok = await ticketService.DeleteTicketAsync(id);
+                if (ok == true) 
+                { 
+                    tickets = tickets?.Where(t => t.Id != id).ToArray(); 
+                } 
+                else 
+                { 
+                    snackbar.Add("No se pudo eliminar el ticket", Severity.Error);
+                }
 
         }
     }
@@ -106,12 +148,13 @@
         var result = await dialog.Result;
         if (result?.Data is TicketDto edit)
         {
-            tickets = tickets?.Select(t => t.Id == edit.Id ? edit : t).ToArray();
+                tickets = tickets?.Select(t => t.Id == edit.Id ? edit : t).ToArray();
         }
         else
         {
-            snackbar.Add("No se pudo editar el ticket", Severity.Error);
+                snackbar.Add("No se pudo editar el ticket", Severity.Error);
         }
     }
 
 }
+            

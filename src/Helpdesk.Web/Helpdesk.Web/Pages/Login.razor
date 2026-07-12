@@ -32,7 +32,7 @@
             try
             {
                 await AuthService.LoginAsync(email, password);
-                navigationManager.NavigateTo("/home");
+                navigationManager.NavigateTo("/tickets");
             } 
             catch (Exception ex)
             {

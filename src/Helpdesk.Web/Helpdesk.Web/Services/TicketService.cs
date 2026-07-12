@@ -10,6 +10,7 @@ public interface ITicketService
     Task<TicketDto?> CreateTicketAsync(CrearTicketDto dto);
     Task<bool> DeleteTicketAsync(int id);
     Task<TicketDto?> UpdateTicketAsync(int id, PutTicketDto dto);
+    Task<bool> ChangeTicketStateAsync(int id, PutTicketStateDto dto);
 }
 
 public class TicketService(HttpClient http) : ITicketService
@@ -39,6 +40,7 @@ public class TicketService(HttpClient http) : ITicketService
         return response.IsSuccessStatusCode ? true : false;
     }
 
+    //Actualizar ticket
     public async Task<TicketDto?> UpdateTicketAsync(int id, PutTicketDto dto)
     {
         var response = await http.PutAsJsonAsync($"tickets/{id}", dto);
@@ -51,5 +53,11 @@ public class TicketService(HttpClient http) : ITicketService
         {
             return null;
         }
+    }
+
+    public async Task<bool> ChangeTicketStateAsync(int id, PutTicketStateDto dto)
+    {
+        var message = await http.PutAsJsonAsync($"tickets/{id}/status", dto,JsonConfig.Options);
+        return message.IsSuccessStatusCode;
     }
 }
