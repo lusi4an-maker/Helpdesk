@@ -29,7 +29,7 @@ public class CustomAuthenticationStateProvider (ILocalStorageService storage) : 
             {
                 //Trato de parsear el token, lo guardo en lista para armar la autenticacion.
                 var claims = ParseClaimsJwt(token);
-                usuario = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt", ClaimTypes.NameIdentifier, ClaimTypes.Role));
+                usuario = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt", "nameid", "role"));
                 main = usuario;
             }
             catch (Exception ex)

@@ -13,6 +13,7 @@ public interface IUsuarioService
     Task<ResultadoApi> UpdateUsuarioAsync(int id, PutUsuarioDto dto);
     Task<bool> DeleteUsuarioAsync(int id);
     Task<ResultadoApi> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto);
+    Task<UsuarioDto[]> GetUsuariosAsignablesAsync();
 }
 
 public class UsuarioService (HttpClient http) : IUsuarioService
@@ -72,5 +73,10 @@ public class UsuarioService (HttpClient http) : IUsuarioService
         {
             return new ResultadoApi(false, await hasChanged.LeerErrorAsync());
         }
+    }
+
+    public async Task<UsuarioDto[]> GetUsuariosAsignablesAsync()
+    {
+        return await http.GetFromJsonAsync<UsuarioDto[]>("usuarios/asignables", JsonConfig.Options) ?? [];
     }
 }

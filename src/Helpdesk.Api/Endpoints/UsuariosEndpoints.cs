@@ -17,6 +17,8 @@ public static class UsuariosEndpoints
             .RequireAuthorization("SoloAdmins");
         group.MapGet("/{id}", GetUsuarioId)
             .RequireAuthorization("SoloAdmins");
+        group.MapGet("/asignables", GetUsuariosAsignables)
+            .RequireAuthorization("SoloAdmins");
         //Post
         group.MapPost("/", PostUsuario)
             .RequireAuthorization("SoloAdmins");
@@ -219,4 +221,23 @@ public static class UsuariosEndpoints
         return Results.NoContent();
 
     }
+
+    //Filtro los usuarios que sean elegibles para asignar a tickets
+    private static async Task<IResult> GetUsuariosAsignables(HelpdeskDbContext contexto)
+    {
+        var uAsignables = await contexto.Usuarios
+            .Where(u => u.Rol == RolUsuario.Agente || u.Rol == RolUsuario.Analista) //Filtro aca y luego selecciono
+            .Select(u => new UsuarioResponseDto(
+            u.Id,
+            u.Nombre,
+            u.Email,
+            u.NombrePila,
+            u.ApellidoPila,
+            u.Rol,
+            u.Estado
+            )).ToListAsync();
+
+        return Results.Ok(uAsignables);
+    }
+
 }

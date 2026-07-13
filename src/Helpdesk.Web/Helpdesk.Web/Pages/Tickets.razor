@@ -63,6 +63,9 @@
             <MudIconButton Icon="@Icons.Material.Filled.Delete"
             Color="Color.Error"
             OnClick="@(() => ShowDeleteDialogAsync(context.Id))" />
+            <MudIconButton Icon="@Icons.Material.Filled.PersonAdd"
+                           Color="Color.Info"
+                           OnClick="@(() => ShowAssignDialogAsync(context))" />
         </MudTd>
     </RowTemplate>
     <PagerContent> 
@@ -154,6 +157,16 @@
         {
             snackbar.Add("No se pudo editar el estado del ticket seleccionado", Severity.Error);
         }
+    }
+    //Muestro el dialogo de asignar agente
+    private async Task ShowAssignDialogAsync(TicketDto ticketAAsignar)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<AsignarAgenteDialog> { { x => x.ticket, ticketAAsignar } };
+        var dialog = await dialogService.ShowAsync<AsignarAgenteDialog>("Asignar agente", parameters, options);
+
+        await dialog.Result;
+        
     }
 
 }
