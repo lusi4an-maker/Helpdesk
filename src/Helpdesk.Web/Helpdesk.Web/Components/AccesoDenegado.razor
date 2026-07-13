@@ -1,0 +1,16 @@
+﻿
+
+@inject NavigationManager Navigation
+
+<MudAlert>
+    <MudText Typo="Typo.h5">No tienes permiso para acceder a esta pagina.</MudText>
+    <MudText Typo="Typo.h6">Contactese con el administrador del sistema.</MudText>
+    <MudButton Color="Color.Primary" OnClick="VolverAInicio">Volver al inicio</MudButton>
+</MudAlert>
+
+@code {
+    private void VolverAInicio()
+    {
+        Navigation.NavigateTo("/home");
+    }
+}

@@ -1,12 +1,14 @@
-﻿@using Helpdesk.Web.Services;
+﻿@using Helpdesk.Web.Components;
 @using Helpdesk.Web.Dtos;
-@using Helpdesk.Web.Components;
+@using Helpdesk.Web.Services;
+@using Microsoft.AspNetCore.Authorization
 
 @inject IUsuarioService usuarioService
 @inject IDialogService dialogService;
 @inject ISnackbar snackbar;
 
 @page "/usuarios"
+@attribute [Authorize(Roles = "Administrador,Gerente")]
 
 <MudTable T="UsuarioDto" Items="users ?? []" Hover="true" Bordered="true" Loading="users is null" >
     <ToolBarContent>

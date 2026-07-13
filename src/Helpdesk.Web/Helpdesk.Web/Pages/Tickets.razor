@@ -3,10 +3,13 @@
 @using Helpdesk.Web.Dtos;
 @using Helpdesk.Web.Components;
 @using Helpdesk.Web.Models;
-@using Microsoft.AspNetCore.Components;
+@using Microsoft.AspNetCore.Authorization;
+
 @inject ITicketService ticketService;
 @inject IDialogService dialogService;
 @inject ISnackbar snackbar;
+
+@attribute [Authorize]
 <h3>Tickets</h3>
 
 <MudTable T="TicketDto" Items="tickets ?? []" Hover="true" Bordered="true" Loading="tickets is null" OnRowClick="SelectedRow" >
