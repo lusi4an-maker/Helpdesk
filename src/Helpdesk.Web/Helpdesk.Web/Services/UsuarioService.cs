@@ -9,7 +9,9 @@ public interface IUsuarioService
 {
     Task<UsuarioDto[]> GetUsuariosAsync();
     Task<UsuarioDto?> CreateUsuarioAsync(CrearUsuarioDto dto);
-    Task<bool> UpdateUsuarioAsync(PutUsuarioDto dto);
+    Task<bool> UpdateUsuarioAsync(int id, PutUsuarioDto dto);
+    Task<bool> DeleteUsuarioAsync(int id);
+    Task<bool> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto);
 }
 
 public class UsuarioService (HttpClient http) : IUsuarioService
@@ -37,8 +39,23 @@ public class UsuarioService (HttpClient http) : IUsuarioService
         }
     }
 
-    public async Task<bool> UpdateUsuarioAsync(PutUsuarioDto dto)
+    //Editar usuario, se ejecuta directo en la ruta
+    public async Task<bool> UpdateUsuarioAsync(int id, PutUsuarioDto dto)
     {
-        var response = await http.PutAsJsonAsync()
+        var response = await http.PutAsJsonAsync($"usuarios/{id}", dto);
+        return response.IsSuccessStatusCode;
+    }
+
+    //Eliminar usuario, se ejecuta directo en la ruta
+    public async Task<bool> DeleteUsuarioAsync(int id)
+    {
+        var response = await http.DeleteAsync($"usuarios/{id}");
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto)
+    {
+        var hasChanged = await http.PutAsJsonAsync($"usuarios/{id}/password", dto);
+        return hasChanged.IsSuccessStatusCode;
     }
 }

@@ -37,7 +37,7 @@ public class TicketService(HttpClient http) : ITicketService
     public async Task<bool> DeleteTicketAsync(int id)
     {
         var response = await http.DeleteAsync($"tickets/{id}");
-        return response.IsSuccessStatusCode ? true : false;
+        return response.IsSuccessStatusCode;
     }
 
     //Actualizar ticket

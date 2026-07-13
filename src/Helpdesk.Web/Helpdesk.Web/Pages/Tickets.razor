@@ -125,10 +125,7 @@
         {
                 tickets = tickets?.Select(t => t.Id == edit.Id ? edit : t).ToArray();
         }
-        else
-        {
-                snackbar.Add("No se pudo editar el ticket", Severity.Error);
-        }
+        
     }
 
     //Asigno que este editando segun el item que de clic

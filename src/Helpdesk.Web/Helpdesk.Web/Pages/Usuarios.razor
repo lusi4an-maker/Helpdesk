@@ -36,6 +36,17 @@
         <MudTd DataLabel="Apellido Pila">@context.ApellidoPila</MudTd>
         <MudTd DataLabel="Rol">@context.Rol</MudTd>
         <MudTd DataLabel="Estado">@context.Estado</MudTd>
+        <MudTd @onclick:stopPropagation="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Key"
+                           Color="Color.Warning"
+                           OnClick="@(() => ShowResetPasswordDialogAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Color="Color.Secondary"
+                           OnClick="@(() => ShowUpdateDialogAsync(context))"/>
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           OnClick="@(() => ShowDeleteDialogAsync(context.Id))" />
+        </MudTd>
     </RowTemplate>
     <PagerContent>
         <MudTablePager PageSizeOptions="new int[] {5, 10, 25}"/>
@@ -45,6 +56,7 @@
 
 @code {
     private UsuarioDto[]? users;
+
 
     private async Task OpenDialogAsync()
     {
@@ -62,5 +74,57 @@
     protected override async Task OnInitializedAsync()
     {
         users = await usuarioService.GetUsuariosAsync();
+    }
+
+    private async Task ShowUpdateDialogAsync(UsuarioDto usuarioAEditar)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<PutUsuarioDialog> { { x => x.usuario, usuarioAEditar } };
+        var dialog = await dialogService.ShowAsync<PutUsuarioDialog>("Editar usuario", parameters, options);
+
+        var result = await dialog.Result;
+        if (result?.Data is UsuarioDto edit)
+        {
+            //Ejecuto el update inline para actualizar la vista
+            users = users?.Select(u => u.Id == edit.Id ? edit : u).ToArray();
+        }
+
+    }
+
+    private async Task ShowDeleteDialogAsync(int id)
+    {
+        bool? result = await dialogService.ShowMessageBoxAsync(
+        title: "Atencion!",
+        message: "Esta seguro que quiere borrar el usuario?",
+        yesText: "Borrar",
+        cancelText: "Cancel"
+        );
+
+        if (result == true)
+        {
+            var ok = await usuarioService.DeleteUsuarioAsync(id);
+            if (ok == true)
+            {
+                users = users?.Where(u => u.Id != id).ToArray();
+            }
+            else
+            {
+                snackbar.Add("No se pudo eliminar el usuario", Severity.Error);
+            }
+
+        }
+    }
+
+    private async Task ShowResetPasswordDialogAsync(UsuarioDto usuarioAEditar)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var parameters = new DialogParameters<ResetPasswordDialog> { { x => x.usuario, usuarioAEditar } };
+        var dialog = await dialogService.ShowAsync<ResetPasswordDialog>("Reiniciar contraseña", parameters, options);
+
+        var result = await dialog.Result;
+        if (result?.Data is true)
+        {
+            snackbar.Add("Se ha reiniciado la contraseña con exito!", Severity.Success);
+        }
     }
 }
