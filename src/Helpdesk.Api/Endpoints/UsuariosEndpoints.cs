@@ -29,6 +29,8 @@ public static class UsuariosEndpoints
             .RequireAuthorization("SoloAdmins");
         group.MapPut("/{usuarioId}/password", ResetUserPassword)
             .RequireAuthorization("SoloAdmins");
+        group.MapPut("/{usuarioId}/rol", PutRolUsuario)
+            .RequireAuthorization("SoloAdmins");
         //Deletes
         group.MapDelete("/{id}", DeleteUsuario)
             .RequireAuthorization("SoloAdmins");
@@ -196,5 +198,23 @@ public static class UsuariosEndpoints
         usuario.PasswordHash = hasher.HashPassword(usuario, dto.NewPassword);
         await contexto.SaveChangesAsync();
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> PutRolUsuario(int usuarioId, ActualizarRolDto dto, HelpdeskDbContext contexto)
+    {
+        //Busco el usuario, si no existe, not found
+        var usuario = await contexto.Usuarios.FindAsync(usuarioId);
+        if (usuario is null)
+        {
+            return Results.NotFound();
+        }
+        //verifico si el dto no viene nulo
+        if(dto.RolUsuario is null) { return Results.BadRequest("Ingrese un rol para el usuario"); }
+
+        //actualizo el rol
+        usuario.Rol = dto.RolUsuario.Value;
+        await contexto.SaveChangesAsync();
+        return Results.NoContent();
+
     }
 }

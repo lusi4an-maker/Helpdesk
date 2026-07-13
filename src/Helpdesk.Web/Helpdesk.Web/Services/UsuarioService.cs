@@ -9,6 +9,7 @@ public interface IUsuarioService
 {
     Task<UsuarioDto[]> GetUsuariosAsync();
     Task<UsuarioDto?> CreateUsuarioAsync(CrearUsuarioDto dto);
+    Task<bool> UpdateUsuarioAsync(PutUsuarioDto dto);
 }
 
 public class UsuarioService (HttpClient http) : IUsuarioService
@@ -34,5 +35,10 @@ public class UsuarioService (HttpClient http) : IUsuarioService
         {
             return null;
         }
+    }
+
+    public async Task<bool> UpdateUsuarioAsync(PutUsuarioDto dto)
+    {
+        var response = await http.PutAsJsonAsync()
     }
 }
