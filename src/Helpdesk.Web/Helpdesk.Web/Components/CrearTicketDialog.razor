@@ -38,14 +38,14 @@
         await form.ValidateAsync();
         if (IsValid)
         {
-            var created = await TicketService.CreateTicketAsync(dto);
-            if (created is null)
+            ResultadoApi<TicketDto> created = await TicketService.CreateTicketAsync(dto);
+            if (!created.Exito)
             {
-                snackbar.Add("Se ha producido un error, intente de nuevo", Severity.Error);
+                snackbar.Add(created.Error ?? "Se ha producido un error, intente de nuevo", Severity.Error);
             } 
             else
             {
-                MudDialog.Close(DialogResult.Ok(created));
+                MudDialog.Close(DialogResult.Ok(created.Data));
                 snackbar.Add("Ticket creado!", Severity.Info);
             }
         }

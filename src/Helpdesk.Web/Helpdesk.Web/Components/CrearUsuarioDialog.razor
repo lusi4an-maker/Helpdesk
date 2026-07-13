@@ -47,14 +47,14 @@
         await form.ValidateAsync();
         if (IsValid)
         {
-            var created = await usuarioService.CreateUsuarioAsync(dto);
-            if (created is null)
+            var result = await usuarioService.CreateUsuarioAsync(dto);
+            if (!result.Exito)
             {
-                snackbar.Add("No se pudo crear el usuario, verifique los campos", Severity.Warning);
+                snackbar.Add(result.Error ?? "No se pudo crear el usuario, verifique los campos", Severity.Warning);
             }
             else
             {
-                MudDialog.Close(DialogResult.Ok(created));
+                MudDialog.Close(DialogResult.Ok(result.Data));
                 snackbar.Add("Se ha creado correctamente el usuario", Severity.Info);
             }
         }

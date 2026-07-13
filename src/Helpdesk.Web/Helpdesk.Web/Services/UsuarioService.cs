@@ -1,6 +1,7 @@
 ﻿
 using System.Net.Http.Json;
 using Helpdesk.Web.Dtos;
+using Helpdesk.Web.Extensions;
 using Helpdesk.Web.Json;
 
 namespace Helpdesk.Web.Services;
@@ -8,10 +9,10 @@ namespace Helpdesk.Web.Services;
 public interface IUsuarioService
 {
     Task<UsuarioDto[]> GetUsuariosAsync();
-    Task<UsuarioDto?> CreateUsuarioAsync(CrearUsuarioDto dto);
-    Task<bool> UpdateUsuarioAsync(int id, PutUsuarioDto dto);
+    Task<ResultadoApi<UsuarioDto>> CreateUsuarioAsync(CrearUsuarioDto dto);
+    Task<ResultadoApi> UpdateUsuarioAsync(int id, PutUsuarioDto dto);
     Task<bool> DeleteUsuarioAsync(int id);
-    Task<bool> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto);
+    Task<ResultadoApi> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto);
 }
 
 public class UsuarioService (HttpClient http) : IUsuarioService
@@ -23,7 +24,7 @@ public class UsuarioService (HttpClient http) : IUsuarioService
     }
 
     //Crear un usuario
-    public async Task<UsuarioDto?> CreateUsuarioAsync(CrearUsuarioDto dto)
+    public async Task<ResultadoApi<UsuarioDto>> CreateUsuarioAsync(CrearUsuarioDto dto)
     {
         //Aguardo el post de usuario y guardo la respuesta
         HttpResponseMessage response = await http.PostAsJsonAsync("usuarios", dto, JsonConfig.Options);
@@ -31,19 +32,26 @@ public class UsuarioService (HttpClient http) : IUsuarioService
         if (response.IsSuccessStatusCode)
         {
             var successful = await response.Content.ReadFromJsonAsync<UsuarioDto>(JsonConfig.Options);
-            return successful;
+            return new ResultadoApi<UsuarioDto>(true, successful, null);
         }
         else
         {
-            return null;
+            return new ResultadoApi<UsuarioDto>(false, null, await response.LeerErrorAsync());
         }
     }
 
     //Editar usuario, se ejecuta directo en la ruta
-    public async Task<bool> UpdateUsuarioAsync(int id, PutUsuarioDto dto)
+    public async Task<ResultadoApi> UpdateUsuarioAsync(int id, PutUsuarioDto dto)
     {
         var response = await http.PutAsJsonAsync($"usuarios/{id}", dto);
-        return response.IsSuccessStatusCode;
+        if (response.IsSuccessStatusCode) 
+        {
+            return new ResultadoApi(true, null);
+        }
+        else
+        {
+            return new ResultadoApi(false, await response.LeerErrorAsync());
+        }
     }
 
     //Eliminar usuario, se ejecuta directo en la ruta
@@ -53,9 +61,16 @@ public class UsuarioService (HttpClient http) : IUsuarioService
         return response.IsSuccessStatusCode;
     }
 
-    public async Task<bool> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto)
+    public async Task<ResultadoApi> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto)
     {
         var hasChanged = await http.PutAsJsonAsync($"usuarios/{id}/password", dto);
-        return hasChanged.IsSuccessStatusCode;
+        if (hasChanged.IsSuccessStatusCode) 
+        {
+            return new ResultadoApi(true, null);
+        }
+        else
+        {
+            return new ResultadoApi(false, await hasChanged.LeerErrorAsync());
+        }
     }
 }

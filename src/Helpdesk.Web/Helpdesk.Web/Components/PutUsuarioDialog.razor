@@ -48,9 +48,9 @@
             var id = usuario.Id;
 
             var hasEdited = await usuarioService.UpdateUsuarioAsync(id, dto);
-            if (!hasEdited)
+            if (!hasEdited.Exito)
             {
-                snackbar.Add("Se ha producido un error, intente de nuevo", Severity.Error);
+                snackbar.Add(hasEdited.Error ?? "Se ha producido un error, intente de nuevo", Severity.Error);
             }
             else
             {
