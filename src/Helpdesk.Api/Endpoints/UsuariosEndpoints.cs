@@ -1,10 +1,8 @@
-using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Helpdesk.Api.Data;
 using Helpdesk.Api.Dtos;
 using Helpdesk.Api.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.VisualBasic;
 
 namespace Helpdesk.Api.Endpoints;
 
@@ -15,8 +13,10 @@ public static class UsuariosEndpoints
         var group = app.MapGroup("/usuarios").WithTags("Usuarios").RequireAuthorization();
 
         //Gets
-        group.MapGet("/", GetUsuarios);
-        group.MapGet("/{id}", GetUsuarioId);
+        group.MapGet("/", GetUsuarios)
+            .RequireAuthorization("SoloAdmins");
+        group.MapGet("/{id}", GetUsuarioId)
+            .RequireAuthorization("SoloAdmins");
         //Post
         group.MapPost("/", PostUsuario)
             .RequireAuthorization("SoloAdmins");
@@ -25,11 +25,11 @@ public static class UsuariosEndpoints
             .RequireAuthorization("SoloAdmins");
         group.MapPut("/{id}/email", PutMail)
             .RequireAuthorization("SoloAdmins");
-        group.MapPut("/{usuarioId}/status", StatusUser)
+        group.MapPut("/{id}/status", StatusUser)
             .RequireAuthorization("SoloAdmins");
-        group.MapPut("/{usuarioId}/password", ResetUserPassword)
+        group.MapPut("/{id}/password", ResetUserPassword)
             .RequireAuthorization("SoloAdmins");
-        group.MapPut("/{usuarioId}/rol", PutRolUsuario)
+        group.MapPut("/{id}/rol", PutRolUsuario)
             .RequireAuthorization("SoloAdmins");
         //Deletes
         group.MapDelete("/{id}", DeleteUsuario)
@@ -74,7 +74,7 @@ public static class UsuariosEndpoints
     }
 
     //Crear usuario
-    private static async Task<IResult> PostUsuario(CrearUsuarioDto dto, HelpdeskDbContext contexto)
+    private static async Task<IResult> PostUsuario(HelpdeskDbContext contexto, CrearUsuarioDto dto)
     {
         //Verifico si tiene rol
         if (dto.Rol is null)
@@ -82,32 +82,42 @@ public static class UsuariosEndpoints
             return Results.BadRequest("Ingrese un rol para el usuario.");
         }
         var hasher = new PasswordHasher<Usuario>();
-        Usuario nuevo = new Usuario
-        {
-            Nombre = dto.Nombre,
-            Email = dto.Email,
-            NombrePila = dto.NombrePila,
-            ApellidoPila = dto.ApellidoPila,
-            Rol = dto.Rol.Value,
-        };
-        nuevo.PasswordHash = hasher.HashPassword(nuevo, dto.Password);
+        //si el email ya esta en uso, error, sino, dejo crear el objeto
+        bool isTaken = await contexto.Usuarios.AnyAsync(u => u.Email == dto.Email);
 
-        contexto.Usuarios.Add(nuevo);
-        await contexto.SaveChangesAsync();
-        var respuesta = new UsuarioResponseDto(
-            nuevo.Id,
-            nuevo.Nombre,
-            nuevo.Email,
-            nuevo.NombrePila,
-            nuevo.ApellidoPila,
-            nuevo.Rol,
-            nuevo.Estado
-            );
-        return Results.Created($"/usuarios/{nuevo.Id}", respuesta);
+        if (!isTaken)
+        {
+            Usuario nuevo = new Usuario
+            {
+                Nombre = dto.Nombre,
+                Email = dto.Email,
+                NombrePila = dto.NombrePila,
+                ApellidoPila = dto.ApellidoPila,
+                Rol = dto.Rol.Value,
+            };
+            nuevo.PasswordHash = hasher.HashPassword(nuevo, dto.Password);
+
+            contexto.Usuarios.Add(nuevo);
+            await contexto.SaveChangesAsync();
+            var respuesta = new UsuarioResponseDto(
+                nuevo.Id,
+                nuevo.Nombre,
+                nuevo.Email,
+                nuevo.NombrePila,
+                nuevo.ApellidoPila,
+                nuevo.Rol,
+                nuevo.Estado
+                );
+            return Results.Created($"/usuarios/{nuevo.Id}", respuesta);
+        }
+        else
+        {
+            return Results.BadRequest("El email ya esta en uso");
+        }
     }
 
     //Modificar usuario
-    private static async Task<IResult> PutUsuario(int id, ActualizarUsuarioDto dto, HelpdeskDbContext contexto)
+    private static async Task<IResult> PutUsuario(int id, HelpdeskDbContext contexto, ActualizarUsuarioDto dto)
     {
         var usuario = await contexto.Usuarios.FindAsync(id);
         
@@ -115,20 +125,12 @@ public static class UsuariosEndpoints
         {
             return Results.NotFound();
         }
-        bool isTaken = await contexto.Usuarios.AnyAsync(u => u.Email == dto.Email && u.Id != id);
 
-        if (!isTaken)
-        {
-            usuario.Nombre = dto.Nombre;
-            usuario.Email = dto.Email;
-            usuario.NombrePila = dto.NombrePila;
-            usuario.ApellidoPila = dto.ApellidoPila;
-            await contexto.SaveChangesAsync();
-            return Results.NoContent();
-        } else
-        {
-            return Results.BadRequest("El email ya esta en uso.");
-        }
+        usuario.Nombre = dto.Nombre;
+        usuario.NombrePila = dto.NombrePila;
+        usuario.ApellidoPila = dto.ApellidoPila;
+        await contexto.SaveChangesAsync();
+        return Results.NoContent();
         
     }
 
@@ -146,7 +148,7 @@ public static class UsuariosEndpoints
     }
 
     //Actualizar mail (solo admins)
-    private static async Task<IResult> PutMail(int id, CambiarEmailDto dto, HelpdeskDbContext contexto)
+    private static async Task<IResult> PutMail(int id, HelpdeskDbContext contexto, CambiarEmailDto dto)
     {
         var usuario = await contexto.Usuarios.FindAsync(id);
         if (usuario is null)
@@ -159,16 +161,16 @@ public static class UsuariosEndpoints
         {
             usuario.Email = dto.NewEmail;
             await contexto.SaveChangesAsync();
-            return Results.Ok();
+            return Results.NoContent();
         }
         return Results.BadRequest("El email ya esta en uso.");
     }
 
     //Actualizar Estado del usuario
-    private static async Task<IResult> StatusUser(int usuarioId, HelpdeskDbContext contexto, ActualizarEstadoUsuarioDto dto)
+    private static async Task<IResult> StatusUser(int id, HelpdeskDbContext contexto, ActualizarEstadoUsuarioDto dto)
     {
         //Verifico si el usuario existe
-        var usuario = await contexto.Usuarios.FindAsync(usuarioId);
+        var usuario = await contexto.Usuarios.FindAsync(id);
         if (usuario is null)
         {
             return Results.NotFound();
@@ -184,10 +186,10 @@ public static class UsuariosEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> ResetUserPassword(int usuarioId, HelpdeskDbContext contexto, ResetPasswordDto dto)
+    private static async Task<IResult> ResetUserPassword(int id, HelpdeskDbContext contexto, ResetPasswordDto dto)
     {
         //Busco el usuario, si no existe, not found
-        var usuario = await contexto.Usuarios.FindAsync(usuarioId);
+        var usuario = await contexto.Usuarios.FindAsync(id);
         if (usuario is null)
         {
             return Results.NotFound();
@@ -200,10 +202,10 @@ public static class UsuariosEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> PutRolUsuario(int usuarioId, ActualizarRolDto dto, HelpdeskDbContext contexto)
+    private static async Task<IResult> PutRolUsuario(int id, HelpdeskDbContext contexto, ActualizarRolDto dto)
     {
         //Busco el usuario, si no existe, not found
-        var usuario = await contexto.Usuarios.FindAsync(usuarioId);
+        var usuario = await contexto.Usuarios.FindAsync(id);
         if (usuario is null)
         {
             return Results.NotFound();
