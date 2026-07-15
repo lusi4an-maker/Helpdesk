@@ -131,7 +131,7 @@ using (var scope = app.Services.CreateScope())
             Nombre = "admin",
             Email = "admin@helpdesk.com",
             NombrePila = "Sistema",
-            ApellidoPila = "",
+            ApellidoPila = "MesaPlus",
             Rol = RolUsuario.Administrador,
         };
         if (string.IsNullOrEmpty(adminPass))

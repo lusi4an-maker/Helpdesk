@@ -37,7 +37,7 @@
         <MudTd DataLabel="ID">@context.Id</MudTd>
         <MudTd DataLabel="Titulo">@context.Titulo</MudTd>
         <MudTd DataLabel="Descripcion">@context.Descripcion</MudTd>
-        <MudTd DataLabel="Fecha de Creacion">@context.FechaCreacion</MudTd>
+        <MudTd DataLabel="Fecha de Creacion">@context.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</MudTd>
         <MudTd DataLabel="Autor">@context.NombreCreador</MudTd>
         <MudTd DataLabel="Asignado a">@(context.NombreAgente ?? "Sin asignar")</MudTd>
         <MudTd DataLabel="Estado">
