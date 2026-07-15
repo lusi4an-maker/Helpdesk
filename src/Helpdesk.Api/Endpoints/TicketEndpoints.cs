@@ -47,13 +47,34 @@ public static class TicketEndpoints
         {
             query = query.Where(t => t.AgenteAsignadoId == int.Parse(usuario));
         }
-        return Results.Ok(await query.ToListAsync());
+        return Results.Ok(await query.Select(t => new TicketResponseDto(
+                                                        t.Id, 
+                                                        t.Titulo, 
+                                                        t.Descripcion, 
+                                                        t.FechaCreacion, 
+                                                        t.Estado,
+                                                        t.Usuario.NombrePila + " " + t.Usuario.ApellidoPila,
+                                                        t.AgenteAsignado == null ? null : t.AgenteAsignado.NombrePila + " " + t.AgenteAsignado.ApellidoPila,
+                                                        t.UsuarioCreo,
+                                                        t.AgenteAsignadoId)).ToListAsync());
     }
 
     //Get ticket por ID
     private static async Task<IResult> GetTicketId(int id, HelpdeskDbContext contexto, HttpContext http)
     {
-        var ticket = await contexto.Tickets.FindAsync(id);
+        var ticket = await contexto.Tickets
+            .Where(t => t.Id == id)
+            .Select(t => new TicketResponseDto(
+                t.Id,
+                t.Titulo,
+                t.Descripcion, 
+                t.FechaCreacion,
+                t.Estado,
+                t.Usuario.NombrePila + " " + t.Usuario.ApellidoPila,
+                t.AgenteAsignado == null ? null : t.AgenteAsignado.NombrePila + " " + t.AgenteAsignado.ApellidoPila,
+                t.UsuarioCreo,
+                t.AgenteAsignadoId
+                )).FirstOrDefaultAsync();
         var rol = http.User.FindFirstValue(ClaimTypes.Role);
         var usuario = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
 

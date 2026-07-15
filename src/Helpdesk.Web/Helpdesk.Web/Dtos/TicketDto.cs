@@ -11,5 +11,7 @@ public class TicketDto
     public int UsuarioCreo { get; set; }
     public int? AgenteAsignadoId { get; set; }
     public EstadoTicket Estado { get; set; }
+    public string NombreCreador { get; set; } = string.Empty;
+    public string? NombreAgente { get; set; }
 
 }

@@ -144,7 +144,7 @@ public static class UsuariosEndpoints
         {
             return Results.NotFound();
         }
-        contexto.Usuarios.Remove(usuario);
+        usuario.Estado = EstadoUsuario.Inactivo;
         await contexto.SaveChangesAsync();
         return Results.NoContent();
     }

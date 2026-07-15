@@ -62,8 +62,10 @@
             }
             else
             {
+                var agenteElegido = agentes?.FirstOrDefault(a => a.Id == dto.AgenteId);
                 ticket.AgenteAsignadoId = dto.AgenteId;
-                MudDialog.Close(DialogResult.Ok(true));
+                ticket.NombreAgente = agenteElegido == null ? null : agenteElegido.NombrePila + " " + agenteElegido.ApellidoPila;
+                MudDialog.Close(DialogResult.Ok(ticket));
                 snackbar.Add("Usuario Asignado!", Severity.Info);
             }
         }

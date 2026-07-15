@@ -21,5 +21,11 @@ public class HelpdeskDbContext : DbContext
             .WithMany()
             .HasForeignKey(t => t.AgenteAsignadoId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Ticket>()
+            .HasOne(t => t.Usuario)
+            .WithMany(u => u.Tickets)
+            .HasForeignKey(t => t.UsuarioCreo)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

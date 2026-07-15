@@ -29,8 +29,8 @@
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Titulo)">Titulo</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Descripcion)">Descripcion</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.FechaCreacion)">Fecha de Creacion</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.UsuarioCreo)">Autor</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.AgenteAsignadoId)">Asignado a</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.NombreCreador)">Autor</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.NombreAgente)">Asignado a</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Estado)">Estado</MudTableSortLabel></MudTh>
     </HeaderContent>
     <RowTemplate >
@@ -38,8 +38,8 @@
         <MudTd DataLabel="Titulo">@context.Titulo</MudTd>
         <MudTd DataLabel="Descripcion">@context.Descripcion</MudTd>
         <MudTd DataLabel="Fecha de Creacion">@context.FechaCreacion</MudTd>
-        <MudTd DataLabel="Autor">@context.UsuarioCreo</MudTd>
-        <MudTd DataLabel="Asignado a">@context.AgenteAsignadoId</MudTd>
+        <MudTd DataLabel="Autor">@context.NombreCreador</MudTd>
+        <MudTd DataLabel="Asignado a">@(context.NombreAgente ?? "Sin asignar")</MudTd>
         <MudTd DataLabel="Estado">
             @if (editingStateId == context.Id)
             {
