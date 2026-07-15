@@ -84,11 +84,13 @@ public static class UsuariosEndpoints
             return Results.BadRequest("Ingrese un rol para el usuario.");
         }
         var hasher = new PasswordHasher<Usuario>();
-        //si el email ya esta en uso, error, sino, dejo crear el objeto
-        bool isTaken = await contexto.Usuarios.AnyAsync(u => u.Email == dto.Email);
+        //si el email o nombre ya esta en uso, error, sino, dejo crear el objeto
+        bool emailisTaken = await contexto.Usuarios.AnyAsync(u => u.Email == dto.Email);
+        bool userisTaken = await contexto.Usuarios.AnyAsync(u => u.Nombre == dto.Nombre);
 
-        if (!isTaken)
-        {
+        if (emailisTaken) { return Results.BadRequest("El email ya esta en uso"); }
+        if (userisTaken) { return Results.BadRequest("El usuario ya esta en uso"); }
+
             Usuario nuevo = new Usuario
             {
                 Nombre = dto.Nombre,
@@ -111,11 +113,7 @@ public static class UsuariosEndpoints
                 nuevo.Estado
                 );
             return Results.Created($"/usuarios/{nuevo.Id}", respuesta);
-        }
-        else
-        {
-            return Results.BadRequest("El email ya esta en uso");
-        }
+
     }
 
     //Modificar usuario

@@ -25,12 +25,18 @@ public static class AuthEndpoints
 
     private static async Task<IResult> Login(AuthLoginDto dto, HelpdeskDbContext contexto, IConfiguration config)
     {
-        var usuario = await contexto.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        var usuario = await contexto.Usuarios.FirstOrDefaultAsync(u => u.Nombre == dto.Nombre);
 
         if (usuario is null)
         {
             return Results.Unauthorized();
         }
+        
+        if (usuario.Estado != EstadoUsuario.Activo)
+        {
+            return Results.Unauthorized();
+        }
+
         var hasher = new PasswordHasher<Usuario>();
 
         var result = hasher.VerifyHashedPassword(usuario, usuario.PasswordHash, dto.Password);

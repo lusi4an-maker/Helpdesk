@@ -46,14 +46,16 @@
         {
             var id = ticket.Id;
 
-            ResultadoApi<TicketDto> edited = await TicketService.UpdateTicketAsync(id, dto);
-                if (!edited.Exito)
-                {
-                    snackbar.Add(edited.Error ?? "Se ha producido un error, intente de nuevo", Severity.Error);
-                } 
-                else
-                {
-                    MudDialog.Close(DialogResult.Ok(edited.Data));
+            ResultadoApi edited = await TicketService.UpdateTicketAsync(id, dto);
+            if (!edited.Exito)
+            {
+                snackbar.Add(edited.Error ?? "Se ha producido un error, intente de nuevo", Severity.Error);
+            } 
+            else
+            {
+                    ticket.Titulo = dto.Titulo;
+                    ticket.Descripcion = dto.Descripcion;
+                    MudDialog.Close(DialogResult.Ok(ticket));
                     snackbar.Add("Ticket editado!", Severity.Info);
                 }
         }

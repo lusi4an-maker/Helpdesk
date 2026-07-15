@@ -5,19 +5,19 @@ namespace Helpdesk.Web.Services;
 
 public interface IAuthService
 {
-    Task<string?> LoginAsync(string email, string password);
+    Task<string?> LoginAsync(string nombre, string password);
     Task LogoutAsync();
     Task<string?> GetTokenAsync();
 }
 
 public class AuthService (HttpClient http, ILocalStorageService storage, CustomAuthenticationStateProvider customAuthState) : IAuthService
 {
-    public async Task<string?> LoginAsync(string email, string password)
+    public async Task<string?> LoginAsync(string nombre, string password)
     {
         var requestPath = http.BaseAddress + "auth/login";
         HttpResponseMessage response = await http.PostAsJsonAsync(
             requestPath, 
-            (new{ email, password })
+            (new{ nombre, password })
          );
         if (response.IsSuccessStatusCode)
         {

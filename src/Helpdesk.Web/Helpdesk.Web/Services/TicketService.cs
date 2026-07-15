@@ -11,7 +11,7 @@ public interface ITicketService
     Task<TicketDto[]> GetTicketsAsync();
     Task<ResultadoApi<TicketDto>> CreateTicketAsync(CrearTicketDto dto);
     Task<bool> DeleteTicketAsync(int id);
-    Task<ResultadoApi<TicketDto>> UpdateTicketAsync(int id, PutTicketDto dto);
+    Task<ResultadoApi> UpdateTicketAsync(int id, PutTicketDto dto);
     Task<bool> ChangeTicketStateAsync(int id, PutTicketStateDto dto);
     Task<ResultadoApi> AssignTicketAsync(int ticketId, AsignarTicketDto dto);
 }
@@ -44,17 +44,16 @@ public class TicketService(HttpClient http) : ITicketService
     }
 
     //Actualizar ticket
-    public async Task<ResultadoApi<TicketDto>> UpdateTicketAsync(int id, PutTicketDto dto)
+    public async Task<ResultadoApi> UpdateTicketAsync(int id, PutTicketDto dto)
     {
         var response = await http.PutAsJsonAsync($"tickets/{id}", dto);
         if (response.IsSuccessStatusCode)
         {
-            var succesful = await response.Content.ReadFromJsonAsync<TicketDto>(JsonConfig.Options);
-            return new ResultadoApi<TicketDto>(true, succesful, null);
+            return new ResultadoApi(true, null);
         }
         else
         {
-            return new ResultadoApi<TicketDto>(false, null, await response.LeerErrorAsync());
+            return new ResultadoApi(false, await response.LeerErrorAsync());
         }
     }
 

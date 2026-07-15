@@ -10,7 +10,7 @@
 <h3>Login</h3>
 
 <MudForm @ref="form" @bind-IsValid="IsValid">
-    <MudTextField T="string" Label="Email" @bind-Value="email" Required="true" RequiredError="El email es obligatorio." />
+    <MudTextField T="string" Label="Nombre" @bind-Value="nombre" Required="true" RequiredError="El nombre es obligatorio." />
     <MudTextField T="string" Label="Contraseña" InputType="InputType.Password" @bind-Value="password" Required="true" RequiredError="Ingrese su contraseña" />
     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync">
         Iniciar Sesion
@@ -20,7 +20,7 @@
 @code {
     private MudForm form;
     private bool IsValid;
-    string email = string.Empty;
+    string nombre = string.Empty;
     string password = string.Empty;
 
     private async Task SubmitAsync()
@@ -31,12 +31,12 @@
         {
             try
             {
-                await AuthService.LoginAsync(email, password);
+                await AuthService.LoginAsync(nombre, password);
                 navigationManager.NavigateTo("/tickets");
             } 
-            catch (Exception ex)
+            catch
             {
-                snackbar.Add("Email o contraseña invalidos. Verifique", Severity.Error);
+                snackbar.Add("Usuario o contraseña invalidos. Verifique", Severity.Error);
             }
         }
     }

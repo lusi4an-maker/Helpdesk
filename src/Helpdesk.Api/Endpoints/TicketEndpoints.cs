@@ -122,7 +122,19 @@ public static class TicketEndpoints
 
         contexto.Tickets.Add(nuevo);
         await contexto.SaveChangesAsync();
-        return Results.Created($"/tickets/{nuevo.Id}", nuevo);
+        return Results.Created($"/tickets/{nuevo.Id}", await contexto.Tickets
+            .Where(t => t.Id == nuevo.Id)
+            .Select(t => new TicketResponseDto(
+                t.Id,
+                t.Titulo,
+                t.Descripcion,
+                t.FechaCreacion,
+                t.Estado,
+                t.Usuario.NombrePila + " " + t.Usuario.ApellidoPila,
+                t.AgenteAsignado == null ? null : t.AgenteAsignado.NombrePila + " " + t.AgenteAsignado.ApellidoPila,
+                t.UsuarioCreo,
+                t.AgenteAsignadoId
+                )).FirstAsync());
     }
 
     //Modificar ticket (solo titulo y descripcion)
