@@ -27,7 +27,7 @@ public static class TicketDetalleEndpoints
         var ticket = await contexto.Tickets.FindAsync(ticketId);
         var usuario = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
         var rol = http.User.FindFirstValue(ClaimTypes.Role);
-        
+
         //Verificamos si hay ticket y usuario autorizados
         if (ticket is null)
         {
@@ -52,9 +52,24 @@ public static class TicketDetalleEndpoints
         {
             return Results.Forbid();
         }
-        var ticketDetalle = await contexto.TicketDetalles.Where(d => d.TicketId == ticketId).ToListAsync();
-        return Results.Ok(ticketDetalle);
-    }
+
+        var ticketDetalle =  contexto.TicketDetalles.Where(d => d.TicketId == ticketId);
+        if (rol == "Cliente")
+        {
+            ticketDetalle = ticketDetalle.Where(d => !d.EsInterno);
+        }
+        return Results.Ok(await ticketDetalle
+            .OrderBy(td => td.UltimaRevision)
+            .ThenBy(td => td.Id)
+            .Select(td => new TicketDetalleResponseDto(
+                    td.Id,
+                    td.Comentario,
+                    td.Usuario.NombrePila + " " + td.Usuario.ApellidoPila,
+                    td.Usuario.Rol,
+                    td.UltimaRevision,
+                    td.EsInterno
+                )).ToListAsync());
+}
 
     //Crear un detalle
     private static async Task<IResult> PostDetalle(int ticketId, CrearTicketDetalleDto dto, HttpContext http, HelpdeskDbContext contexto)
@@ -69,7 +84,7 @@ public static class TicketDetalleEndpoints
         TicketDetalle nuevo = new TicketDetalle
         {
             TicketId = ticketId,
-            Descripcion = dto.Descripcion,
+            Comentario = dto.Descripcion,
             UsuarioId = int.Parse(usuario)
         };
         contexto.TicketDetalles.Add(nuevo);
