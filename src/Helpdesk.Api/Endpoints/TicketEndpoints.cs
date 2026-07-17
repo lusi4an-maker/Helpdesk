@@ -1,8 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+
+using Helpdesk.Api.Authorization;
 using Helpdesk.Api.Data;
 using Helpdesk.Api.Dtos;
 using Helpdesk.Api.Models;
-using System.Security.Claims;
+
+using Microsoft.EntityFrameworkCore;
 
 namespace Helpdesk.Api.Endpoints;
 
@@ -154,16 +157,9 @@ public static class TicketEndpoints
         }
         
         var usuarioInt = int.Parse(usuario); //Parse para el id usuario
-        bool puedeEditar = 
-            //Es admin o gerente:
-            rol == "Administrador" || rol == "Gerente" ||
-            //Es cliente y es su propio ticket
-            (rol == "Cliente" && ticket.UsuarioCreo == usuarioInt) ||
-            //Es agente o analista y tiene asignado el ticket
-            ((rol == "Agente" || rol == "Analista") && ticket.AgenteAsignadoId == usuarioInt);
 
         //Si no puede editar, forbid
-        if (!puedeEditar)
+        if (!TicketPermisos.EsParticipante(ticket, rol, usuarioInt))
         {
             return Results.Forbid();
         }
@@ -244,14 +240,9 @@ public static class TicketEndpoints
         {
             return Results.NotFound();
         }
-        bool puedeEditar = 
-            //Es admin o gerente:
-            rol == "Administrador" || rol == "Gerente" ||
-            //Es agente o analista y tiene asignado el ticket
-            ((rol == "Agente" || rol == "Analista") && ticket.AgenteAsignadoId == usuarioInt);
 
         //Si no puede editar, forbid
-        if (!puedeEditar)
+        if (!TicketPermisos.PuedeGestionar(ticket, rol, usuarioInt))
         {
             return Results.Forbid();
         }

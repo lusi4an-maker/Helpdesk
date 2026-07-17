@@ -3,6 +3,7 @@ using Helpdesk.Api.Data;
 using Helpdesk.Api.Dtos;
 using Helpdesk.Api.Models;
 using System.Security.Claims;
+using Helpdesk.Api.Authorization;
 
 namespace Helpdesk.Api.Endpoints;
 
@@ -15,8 +16,7 @@ public static class TicketDetalleEndpoints
                         .RequireAuthorization();
 
         group.MapGet("/", GetDetalles);
-        group.MapPost("/", PostDetalle)
-            .RequireAuthorization("SoloPersonal");
+        group.MapPost("/", PostDetalle);
 
         return app;
     }
@@ -39,16 +39,9 @@ public static class TicketDetalleEndpoints
         }
         
         var usuarioInt = int.Parse(usuario); //Parse para el id usuario
-        bool puedeVer = 
-            //Es admin o gerente:
-            rol == "Administrador" || rol == "Gerente" ||
-            //Es cliente y es su propio ticket
-            (rol == "Cliente" && ticket.UsuarioCreo == usuarioInt) ||
-            //Es agente o analista y tiene asignado el ticket
-            ((rol == "Agente" || rol == "Analista") && ticket.AgenteAsignadoId == usuarioInt);
 
         //Si no puede ver el detalle, forbid
-        if (!puedeVer)
+        if (!TicketPermisos.EsParticipante(ticket, rol, usuarioInt))
         {
             return Results.Forbid();
         }
@@ -74,21 +67,41 @@ public static class TicketDetalleEndpoints
     //Crear un detalle
     private static async Task<IResult> PostDetalle(int ticketId, CrearTicketDetalleDto dto, HttpContext http, HelpdeskDbContext contexto)
     {
+        //obtengo el tickety
+        var ticket = await contexto.Tickets.FindAsync(ticketId);
         var usuario = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        
-        if (usuario is null)
+        var rol = http.User.FindFirstValue(ClaimTypes.Role);
+
+        if (ticket is null) { return Results.NotFound(); }
+
+        if (usuario is null){ return Results.Unauthorized(); }
+
+        var usuarioInt = int.Parse(usuario);
+
+        if (!TicketPermisos.EsParticipante(ticket, rol, usuarioInt))
         {
-            return Results.Unauthorized();
+            return Results.Forbid();
         }
-        
+
+
         TicketDetalle nuevo = new TicketDetalle
         {
             TicketId = ticketId,
-            Comentario = dto.Descripcion,
-            UsuarioId = int.Parse(usuario)
+            Comentario = dto.Comentario,
+            UsuarioId = usuarioInt,
+            EsInterno = (rol == "Cliente") ? false : dto.EsInterno
         };
         contexto.TicketDetalles.Add(nuevo);
         await contexto.SaveChangesAsync();
-        return Results.Created($"/tickets/{ticketId}/detalles/{nuevo.Id}", nuevo);
+        return Results.Created($"/tickets/{ticketId}/detalles/{nuevo.Id}", 
+            await contexto.TicketDetalles.Where(td => td.Id == nuevo.Id)
+            .Select(td => new TicketDetalleResponseDto(
+                td.Id,
+                td.Comentario,
+                td.Usuario.NombrePila + " " + td.Usuario.ApellidoPila,
+                td.Usuario.Rol,
+                td.UltimaRevision,
+                td.EsInterno
+                )).FirstAsync());
     }
 }
