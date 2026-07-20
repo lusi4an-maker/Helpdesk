@@ -1,7 +1,10 @@
-﻿namespace Helpdesk.Web.Dtos;
+﻿using Helpdesk.Web.Models;
+
+namespace Helpdesk.Web.Dtos;
 
 public class CrearTicketDto
 {
     public string Titulo { get; set; } = string.Empty;
     public string Descripcion { get; set; } = string.Empty;
+    public PrioridadTicket Prioridad { get; set; } = PrioridadTicket.Media;
 }

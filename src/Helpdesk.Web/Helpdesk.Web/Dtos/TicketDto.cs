@@ -13,5 +13,6 @@ public class TicketDto
     public EstadoTicket Estado { get; set; }
     public string NombreCreador { get; set; } = string.Empty;
     public string? NombreAgente { get; set; }
+    public PrioridadTicket Prioridad { get; set; }
 
 }

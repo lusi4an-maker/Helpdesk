@@ -4,6 +4,7 @@
 @using Helpdesk.Web.Components;
 @using Helpdesk.Web.Models;
 @using Microsoft.AspNetCore.Authorization;
+@using Helpdesk.Web.Helpers;
 
 @inject ITicketService ticketService;
 @inject IDialogService dialogService;
@@ -33,6 +34,7 @@
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.NombreCreador)">Autor</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.NombreAgente)">Asignado a</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Estado)">Estado</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Prioridad)">Prioridad</MudTableSortLabel></MudTh>
     </HeaderContent>
     <RowTemplate >
         <MudTd DataLabel="ID">@context.Id</MudTd>
@@ -43,7 +45,13 @@
         <MudTd DataLabel="Asignado a">@(context.NombreAgente ?? "Sin asignar")</MudTd>
         <MudTd DataLabel="Estado">
                 <MudChip T="EstadoTicket">@context.Estado</MudChip>
-        </MudTd>   
+        </MudTd>
+        <MudTd DataLabel="Prioridad">
+            <MudStack Row="true">
+                <MudIcon Icon="@Icons.Material.Filled.Circle" Color="@context.Prioridad.GetColor()" />
+                <MudText>@context.Prioridad</MudText>
+            </MudStack>
+        </MudTd>
         <MudTd @onclick:stopPropagation="true">
             <MudIconButton Icon="@Icons.Material.Filled.Edit"
             Color="Color.Secondary"

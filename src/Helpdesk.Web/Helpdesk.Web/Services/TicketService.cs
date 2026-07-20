@@ -15,6 +15,7 @@ public interface ITicketService
     Task<ResultadoApi> UpdateTicketAsync(int id, PutTicketDto dto);
     Task<bool> ChangeTicketStateAsync(int id, PutTicketStateDto dto);
     Task<ResultadoApi> AssignTicketAsync(int ticketId, AsignarTicketDto dto);
+    Task<bool> ChangeTicketPriorityAsync(int ticketId, ActualizarPrioridadTicketDto dto);
 }
 
 public class TicketService(HttpClient http) : ITicketService
@@ -94,6 +95,12 @@ public class TicketService(HttpClient http) : ITicketService
         {
             return new ResultadoApi(false, await message.LeerErrorAsync());
         }
+    }
+
+    public async Task<bool> ChangeTicketPriorityAsync(int ticketId, ActualizarPrioridadTicketDto dto)
+    {
+        var message = await http.PutAsJsonAsync($"tickets/{ticketId}/priority", dto, JsonConfig.Options);
+        return message.IsSuccessStatusCode;
     }
 
 }

@@ -1,10 +1,11 @@
-﻿@using Helpdesk.Web.Services;
+﻿@using Helpdesk.Web.Components;
 @using Helpdesk.Web.Dtos;
-@using Helpdesk.Web.Components;
+@using Helpdesk.Web.Helpers
 @using Helpdesk.Web.Models;
+@using Helpdesk.Web.Services;
 @using Microsoft.AspNetCore.Authorization;
-@using Microsoft.AspNetCore.Components.Authorization;
 @using Microsoft.AspNetCore.Components;
+@using Microsoft.AspNetCore.Components.Authorization;
 
 @inject ITicketService ticketService;
 @inject IDialogService dialogService;
@@ -39,7 +40,10 @@ else
         </MudStack>
         <MudStack Row="true">
             <MudChip T="string">@ticket?.Estado</MudChip>
-            @* chip de prioridad va acá (backlog) *@
+            <MudStack Row="true">
+                <MudIcon Icon="@Icons.Material.Filled.Circle" Color="@ticket!.Prioridad.GetColor()" />
+                <MudText>@ticket!.Prioridad</MudText>
+            </MudStack>
         </MudStack>
     </MudStack>
     <MudGrid>
@@ -48,7 +52,7 @@ else
                 <MudText Typo="Typo.overline" Color="Color.Secondary">Descripcion</MudText>
                 <MudText Typo="Typo.h4">@ticket?.Descripcion</MudText>
             </MudPaper>
-            <MudText Typo="Typo.h6" Class="mt-4">HIstorial</MudText>
+            <MudText Typo="Typo.h6" Class="mt-4">Historial</MudText>
             @if (ticketDetalles is null)
             {
                 <MudProgressLinear Indeterminate="true" />
@@ -110,6 +114,23 @@ else
                         </Authorized>
                         <NotAuthorized>
                             <MudChip T="string">@ticket?.Estado</MudChip>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                    <MudText Class="mt-3" Typo="Typo.caption" Color="Color.Secondary">Prioridad</MudText>
+                    <AuthorizeView Roles="Agente,Analista,Administrador,Gerente">
+                        <Authorized>
+                            <MudSelect T="PrioridadTicket" Value="ticket!.Prioridad" ValueChanged="ChangePrioridadAsync">
+                                @foreach (var p in Enum.GetValues<PrioridadTicket>())
+                                {
+                                    <MudSelectItem T="PrioridadTicket" Value="p">@p</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </Authorized>
+                        <NotAuthorized>
+                            <MudStack Row="true">
+                                <MudIcon Icon="@Icons.Material.Filled.Circle" Color="@ticket!.Prioridad.GetColor()" />
+                                <MudText>@ticket!.Prioridad</MudText>
+                            </MudStack>
                         </NotAuthorized>
                     </AuthorizeView>
                     <AuthorizeView Roles="Administrador,Gerente">
@@ -203,6 +224,23 @@ else
         else
         {
             snackbar.Add("No se pudo editar el estado del ticket", Severity.Error);
+        }
+    }
+
+    private async Task ChangePrioridadAsync(PrioridadTicket nuevo)
+    {
+        var dto = new ActualizarPrioridadTicketDto
+            {
+                Prioridad = nuevo
+            };
+        var hasUpdated = await ticketService.ChangeTicketPriorityAsync(Id, dto);
+        if (hasUpdated)
+        {
+            ticket!.Prioridad = nuevo;
+        }
+        else
+        {
+            snackbar.Add("No se pudo editar la prioridad del ticket", Severity.Error);
         }
     }
 
