@@ -78,13 +78,14 @@ else
                                             <MudChip T="string" Color="Color.Warning" Size="Size.Small">Interno</MudChip>
                                         }
                                     </MudStack>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@detalle.FechaCreacion.ToString("dd/MM/yyyy")</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@detalle.FechaCreacion.ToString("dd/MM/yyyy")</MudText>
                                 </MudStack>
                                 <MudText>@detalle.Comentario</MudText>
                             </MudPaper>
                         </MudTimelineItem>
                     }
-                </MudTimeline>
+                </MudTimeline>                    
+            }
 
                 <MudPaper Class="pa-4 mt-4">
                     <MudForm @ref="form" @bind-IsValid="isvalid">
@@ -96,7 +97,10 @@ else
                     </MudForm>
                 </MudPaper>
 
-                <MudPaper Class="pa-4">
+                
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4">
                     <MudText Class="mt-3" Typo="Typo.overline" Color="Color.Secondary">Detalles</MudText>
                     <MudText Class="mt-3" Typo="Typo.caption" Color="Color.Secondary">Cliente</MudText>
                     <MudText Class="mt-3" Typo="Typo.body1">@ticket?.NombreCreador</MudText>
@@ -145,13 +149,10 @@ else
                         </Authorized>
                     </AuthorizeView>
                 </MudPaper>
-            }
-        </MudItem>
-        <MudItem xs="12" md="4">
-            
         </MudItem>
     </MudGrid>
 }
+
 
 @code {
     private bool isvalid;

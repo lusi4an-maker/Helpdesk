@@ -5,6 +5,7 @@
 @using Helpdesk.Web.Models;
 @using Microsoft.AspNetCore.Authorization;
 @using Helpdesk.Web.Helpers;
+@using Microsoft.AspNetCore.Components.Authorization
 
 @inject ITicketService ticketService;
 @inject IDialogService dialogService;
@@ -14,8 +15,41 @@
 
 @attribute [Authorize]
     
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="pb-3">
     <MudText Typo="Typo.h5">Tickets</MudText>
+    @*Filtro de busqueda*@
+    <MudTextField T="string" 
+                    @bind-Value="busqueda" 
+                    Immediate="true" 
+                    Placeholder="Buscar por titulo.." 
+                    Adornment="Adornment.Start" 
+                    AdornmentIcon="@Icons.Material.Filled.Search" 
+                    Margin="Margin.Dense" />
+    
+    @*Filtro estado de ticket*@
+    <MudSelect T="EstadoTicket?"
+               @bind-Value="estadoTicket"
+                Placeholder="Todos los estados"
+                Margin="Margin.Dense">
+        
+        <MudSelectItem T="EstadoTicket?" Value="null">Todos los estados</MudSelectItem>
+        @foreach (var estado in Enum.GetValues<EstadoTicket>())
+        {
+            <MudSelectItem T="EstadoTicket?" Value="estado">@estado</MudSelectItem>
+        }
+    </MudSelect>
+
+    @*Filtro de agentes*@
+        <MudSelect T="int?"
+                    @bind-Value="agenteId"
+                    Placeholder="Todos los agentes">
+                    <MudSelectItem T="int?" Value="null">Todos los agentes</MudSelectItem>
+            @foreach (var agente in AgentesAsignados)
+            {
+                <MudSelectItem T="int?" Value="agente.AgenteAsignadoId">@agente.NombreAgente</MudSelectItem>
+            }
+        </MudSelect>
+
     <MudStack Row="true">
         <MudToggleGroup T="VistasTickets"
                         Value="vista"
@@ -32,9 +66,9 @@
     </MudStack>
 </MudStack>
 
-@if (vista == VistasTickets.Tabla) 
+@if (vista == VistasTickets.Tabla) @*VISTA DE TABLA*@
 {
-        <MudTable T="TicketDto" Items="tickets ?? []" Hover="true" Bordered="true" Loading="tickets is null" OnRowClick="SelectedRow" >
+        <MudTable T="TicketDto" Items="TicketsFiltrados" Hover="true" Bordered="true" Loading="tickets is null" OnRowClick="SelectedRow" >
         <HeaderContent>
             <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Id)">ID</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Titulo)">Titulo</MudTableSortLabel></MudTh>
@@ -75,7 +109,7 @@
         </PagerContent>
     </MudTable>
 }
-else
+else @*VISTA DE CARDS/TARJETAS*@
 {
     @*Si esta cargando se queda en skeleton view*@
     @if (tickets is null)
@@ -85,7 +119,7 @@ else
     else 
     {
         <MudGrid>
-            @foreach (var ticket in tickets)
+            @foreach (var ticket in TicketsFiltrados)
             {
                 <MudItem xs="12" md="3">
                     <MudCard @onclick="@(() => NavigateToDetail(ticket.Id))" Style="cursor:pointer">
@@ -123,6 +157,11 @@ else
 @code {
     private TicketDto[]? tickets;
     private VistasTickets vista = VistasTickets.Tabla;
+
+    //Variables del buscador y filtros
+    private string? busqueda;
+    private EstadoTicket? estadoTicket;
+    private int? agenteId;
 
 
     protected override async Task OnInitializedAsync()
@@ -214,5 +253,18 @@ else
         await storage.SetItemAsync("vistaTickets", nueva.ToString());
     }
 
+    //Propiedad para filtros
+    private IEnumerable<TicketDto> TicketsFiltrados =>
+        (tickets ?? [])
+            .Where(t => string.IsNullOrWhiteSpace(busqueda) || t.Titulo.Contains(busqueda!, StringComparison.OrdinalIgnoreCase))
+            .Where(t => estadoTicket is null || t.Estado == estadoTicket)
+            .Where(t => agenteId is null || t.AgenteAsignadoId == agenteId);
+
+
+    //Propiedad para agentes ya asignados
+    private IEnumerable<TicketDto> AgentesAsignados =>
+        (tickets ?? [])
+            .Where(t => t.AgenteAsignadoId is not null)
+            .DistinctBy(t => t.AgenteAsignadoId);
 }
             
