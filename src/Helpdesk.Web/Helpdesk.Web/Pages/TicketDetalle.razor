@@ -1,0 +1,226 @@
+﻿@using Helpdesk.Web.Services;
+@using Helpdesk.Web.Dtos;
+@using Helpdesk.Web.Components;
+@using Helpdesk.Web.Models;
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+@using Microsoft.AspNetCore.Components;
+
+@inject ITicketService ticketService;
+@inject IDialogService dialogService;
+@inject ISnackbar snackbar;
+@inject ITicketDetalleService ticketDetalle;
+@inject IUsuarioService usuarioService;
+@inject NavigationManager navigationManager;
+@attribute [Authorize]
+@page "/tickets/{Id:int}"
+
+@if (estadoResponse is null)
+{
+    <MudSkeleton/>
+}
+else if (estadoResponse == EstadoResponse.Prohibido)
+{
+    <AccesoDenegado/>
+}
+else if (estadoResponse == EstadoResponse.NoEncontrado)
+{
+    <MudAlert>El ticket no existe
+        <MudLink Href="/tickets">← Volver a tickets</MudLink>
+    </MudAlert>
+}
+else
+{
+    <MudLink Href="/tickets">← Volver a tickets</MudLink>
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">TICKET #@Id</MudText>
+            <MudText Typo="Typo.h4">@ticket?.Titulo</MudText>
+        </MudStack>
+        <MudStack Row="true">
+            <MudChip T="string">@ticket?.Estado</MudChip>
+            @* chip de prioridad va acá (backlog) *@
+        </MudStack>
+    </MudStack>
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Descripcion</MudText>
+                <MudText Typo="Typo.h4">@ticket?.Descripcion</MudText>
+            </MudPaper>
+            <MudText Typo="Typo.h6" Class="mt-4">HIstorial</MudText>
+            @if (ticketDetalles is null)
+            {
+                <MudProgressLinear Indeterminate="true" />
+            }
+            else if (ticketDetalles.Length == 0)
+            {
+                <MudText>Todavia no hay comentarios.</MudText>
+            }
+            else
+            {
+                <MudTimeline>
+                    @foreach (var detalle in ticketDetalles)
+                    {
+                        @*Armo la timeline, diferencio de los internos para no mostrar internos a clientes*@
+                        <MudTimelineItem>
+                            <MudPaper Class="pa-3" Style="@(detalle.EsInterno ? "background-color: var(--mud-palette-warning-lighten);" : null)">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Row="true">
+                                        <MudText Typo="Typo.subtitle2">@detalle.NombreAutor</MudText>
+                                        <MudChip T="string" Size="Size.Small">@detalle.RolAutor</MudChip>
+                                        @if (detalle.EsInterno)
+                                        {
+                                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Interno</MudChip>
+                                        }
+                                    </MudStack>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@detalle.FechaCreacion.ToString("dd/MM/yyyy")</MudText>
+                                </MudStack>
+                                <MudText>@detalle.Comentario</MudText>
+                            </MudPaper>
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+
+                <MudPaper Class="pa-4 mt-4">
+                    <MudForm @ref="form" @bind-IsValid="isvalid">
+                        <MudTextField @bind-Value="detalleDto.Comentario" Lines="3" Placeholder="Escribi un comentario..." Required="true" />
+                        <AuthorizeView Roles="Agente,Analista,Administrador,Gerente">
+                            <MudSwitch @bind-Value="detalleDto.EsInterno" Label="Comentario Interno" Color="Color.Warning"/>
+                        </AuthorizeView>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AgregarComentarioAsync">Agregar comentario</MudButton>
+                    </MudForm>
+                </MudPaper>
+
+                <MudPaper Class="pa-4">
+                    <MudText Class="mt-3" Typo="Typo.overline" Color="Color.Secondary">Detalles</MudText>
+                    <MudText Class="mt-3" Typo="Typo.caption" Color="Color.Secondary">Cliente</MudText>
+                    <MudText Class="mt-3" Typo="Typo.body1">@ticket?.NombreCreador</MudText>
+                    <MudText Class="mt-3" Typo="Typo.caption" Color="Color.Secondary">Creado</MudText>
+                    <MudText Class="mt-3" Typo="Typo.body1">@ticket?.FechaCreacion.ToString("dd/MM/yyyy")</MudText>
+                    <MudText Class="mt-3" Typo="Typo.caption" Color="Color.Secondary">Estado</MudText>
+                    <AuthorizeView Roles="Agente,Analista,Administrador,Gerente">
+                        <Authorized>
+                            <MudSelect T="EstadoTicket" Value="ticket!.Estado" ValueChanged="ChangeEstadoAsync">
+                                @foreach (var estado in Enum.GetValues<EstadoTicket>())
+                                {
+                                    <MudSelectItem T="EstadoTicket" Value="estado">@estado</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </Authorized>
+                        <NotAuthorized>
+                            <MudChip T="string">@ticket?.Estado</MudChip>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                    <AuthorizeView Roles="Administrador,Gerente">
+                        <Authorized>
+                            <MudSelect T="int?" Label="Agente" Value="ticket!.AgenteAsignadoId" ValueChanged="AsignarAgenteAsync">
+                                <MudSelectItem T="int?" Value="@((int?)null)">Sin asignar</MudSelectItem>
+                                @foreach (var agente in agentes ?? [])
+                                {
+                                    <MudSelectItem T="int?" Value="@agente.Id">@agente.NombrePila @agente.ApellidoPila</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </Authorized>
+                    </AuthorizeView>
+                </MudPaper>
+            }
+        </MudItem>
+        <MudItem xs="12" md="4">
+            
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool isvalid;
+    private MudForm form;
+
+    [Parameter] 
+    public int Id { get; set; }
+
+    private TicketDto? ticket;
+    private TicketDetalleResponseDto[]? ticketDetalles;
+    private UsuarioDto[]? agentes;
+
+    private CrearTicketDetalleDto detalleDto = new ();
+    private EstadoResponse? estadoResponse;
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? authstateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var resultado = await ticketService.GetTicketAsync(Id);
+        estadoResponse = resultado.Estado;
+        ticket = resultado.Ticket;
+
+        if (estadoResponse == EstadoResponse.Ok)
+        {
+            ticketDetalles = await ticketDetalle.GetDetallesAsync(Id);
+            var authState = await authstateTask!;
+            var user = authState.User;
+            if (user.IsInRole("Administrador") || user.IsInRole("Gerente"))
+            {
+                agentes = await usuarioService.GetUsuariosAsignablesAsync();
+            }
+        }
+    }  
+
+    private async Task AgregarComentarioAsync()
+    {
+        await form.ValidateAsync();
+        if (isvalid)
+        {
+            //Espero el resultado del post
+            var resultado = await ticketDetalle.CreateDetalleAsync(Id, detalleDto);
+
+            //Si fue exitoso, se mete al array y limpio el dto
+            if (resultado.Exito && resultado.Data is not null)
+            {
+                ticketDetalles = ticketDetalles?.Append(resultado.Data).ToArray();
+                detalleDto = new();
+                await form.ResetAsync();
+            }
+            else
+            {
+                snackbar.Add(resultado.Error ?? "No se pudo agregar el comentario", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ChangeEstadoAsync(EstadoTicket nuevo)
+    {
+        var dto = new PutTicketStateDto
+            {
+                EstadoTicket = nuevo
+            };
+        var hasUpdated = await ticketService.ChangeTicketStateAsync(Id, dto);
+        if (hasUpdated)
+        {
+            ticket!.Estado = nuevo;
+        }
+        else
+        {
+            snackbar.Add("No se pudo editar el estado del ticket", Severity.Error);
+        }
+    }
+
+    private async Task AsignarAgenteAsync(int? nuevoAgenteId)
+    {
+        var id = ticket!.Id;
+        var dto = new AsignarTicketDto { AgenteId = nuevoAgenteId };
+        ResultadoApi assigned = await ticketService.AssignTicketAsync(id, dto);
+        if (!assigned.Exito)
+        {
+            snackbar.Add(assigned.Error ?? "Se ha producido un error, intente de nuevo", Severity.Error);
+        }
+        else
+        {
+            var agenteElegido = agentes?.FirstOrDefault(a => a.Id == dto.AgenteId);
+            ticket.AgenteAsignadoId = dto.AgenteId;
+            ticket.NombreAgente = agenteElegido == null ? null : agenteElegido.NombrePila + " " + agenteElegido.ApellidoPila;
+            snackbar.Add("Usuario Asignado!", Severity.Info);
+        }
+    }
+}

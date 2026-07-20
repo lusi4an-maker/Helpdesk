@@ -15,16 +15,22 @@ public static class TicketEndpoints
     {
         var group = app.MapGroup("/tickets").WithTags("Tickets").RequireAuthorization();
 
+        //Gets
         group.MapGet("/", GetTickets);
         group.MapGet("/{id}", GetTicketId);
+        //Posts
         group.MapPost("/", PostTicket);
+        //Puts
         group.MapPut("/{id}", PutTicket);
-        group.MapDelete("/{id}", DeleteTicket)
-            .RequireAuthorization("SoloAdmins");
         group.MapPut("/{ticketId}/assign", AssignTicket)
             .RequireAuthorization("SoloAdmins");
         group.MapPut("/{ticketId}/status", StatusTicket)
             .RequireAuthorization("SoloPersonal");
+        group.MapPut("/{ticketId}/priority", ChangePriorityTicket)
+            .RequireAuthorization("SoloPersonal");
+        //Deletes
+        group.MapDelete("/{id}", DeleteTicket)
+            .RequireAuthorization("SoloAdmins");
 
         return app;
     }
@@ -59,7 +65,8 @@ public static class TicketEndpoints
                                                         t.Usuario.NombrePila + " " + t.Usuario.ApellidoPila,
                                                         t.AgenteAsignado == null ? null : t.AgenteAsignado.NombrePila + " " + t.AgenteAsignado.ApellidoPila,
                                                         t.UsuarioCreo,
-                                                        t.AgenteAsignadoId)).ToListAsync());
+                                                        t.AgenteAsignadoId,
+                                                        t.Prioridad)).ToListAsync());
     }
 
     //Get ticket por ID
@@ -76,8 +83,8 @@ public static class TicketEndpoints
                 t.Usuario.NombrePila + " " + t.Usuario.ApellidoPila,
                 t.AgenteAsignado == null ? null : t.AgenteAsignado.NombrePila + " " + t.AgenteAsignado.ApellidoPila,
                 t.UsuarioCreo,
-                t.AgenteAsignadoId
-                )).FirstOrDefaultAsync();
+                t.AgenteAsignadoId,
+                t.Prioridad)).FirstOrDefaultAsync();
         var rol = http.User.FindFirstValue(ClaimTypes.Role);
         var usuario = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -120,7 +127,8 @@ public static class TicketEndpoints
         {
             UsuarioCreo = int.Parse(usuario),
             Titulo = dto.Titulo,
-            Descripcion = dto.Descripcion
+            Descripcion = dto.Descripcion,
+            Prioridad = dto.Prioridad ?? PrioridadTicket.Media
         };
 
         contexto.Tickets.Add(nuevo);
@@ -136,7 +144,8 @@ public static class TicketEndpoints
                 t.Usuario.NombrePila + " " + t.Usuario.ApellidoPila,
                 t.AgenteAsignado == null ? null : t.AgenteAsignado.NombrePila + " " + t.AgenteAsignado.ApellidoPila,
                 t.UsuarioCreo,
-                t.AgenteAsignadoId
+                t.AgenteAsignadoId,
+                t.Prioridad
                 )).FirstAsync());
     }
 
@@ -252,6 +261,42 @@ public static class TicketEndpoints
             return Results.BadRequest("Ingrese un estado para el ticket.");
         }
         ticket.Estado = dto.EstadoTicket.Value;
+
+        await contexto.SaveChangesAsync();
+        return Results.NoContent();
+    }
+
+
+    //CambiarPrioridad
+    private static async Task<IResult> ChangePriorityTicket(int ticketId, HelpdeskDbContext contexto, ActualizarPrioridadTicketDto dto, HttpContext http)
+    {
+        var rol = http.User.FindFirstValue(ClaimTypes.Role);
+        //Verifico si el usuario a chequear existe
+        var usuario = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (usuario is null)
+        {
+            return Results.Unauthorized();
+        }
+        //Parse a int
+        var usuarioInt = int.Parse(usuario);
+        //Verifico si el ticket existe
+        var ticket = await contexto.Tickets.FindAsync(ticketId);
+        if (ticket is null)
+        {
+            return Results.NotFound();
+        }
+
+        //Si no puede editar, forbid
+        if (!TicketPermisos.PuedeGestionar(ticket, rol, usuarioInt))
+        {
+            return Results.Forbid();
+        }
+        //Verifico si tiene Prioridad
+        if (dto.Prioridad is null)
+        {
+            return Results.BadRequest("Ingrese una prioridad para el ticket.");
+        }
+        ticket.Prioridad = dto.Prioridad.Value;
 
         await contexto.SaveChangesAsync();
         return Results.NoContent();

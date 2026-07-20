@@ -8,6 +8,7 @@
 @inject ITicketService ticketService;
 @inject IDialogService dialogService;
 @inject ISnackbar snackbar;
+@inject NavigationManager navigationManager;
 
 @attribute [Authorize]
 <h3>Tickets</h3>
@@ -41,20 +42,7 @@
         <MudTd DataLabel="Autor">@context.NombreCreador</MudTd>
         <MudTd DataLabel="Asignado a">@(context.NombreAgente ?? "Sin asignar")</MudTd>
         <MudTd DataLabel="Estado">
-            @if (editingStateId == context.Id)
-            {
-                <MudSelect T="EstadoTicket" Value="context.Estado" ValueChanged="@(async (EstadoTicket nuevo) => await SaveStateAsync(context, nuevo))">
-                    @foreach (var estado in Enum.GetValues<EstadoTicket>())
-                    {
-                        <MudSelectItem T="EstadoTicket" Value="estado">@estado</MudSelectItem>
-                    }
-                </MudSelect>
-            }
-            else
-            {
                 <MudChip T="EstadoTicket">@context.Estado</MudChip>
-            }
-
         </MudTd>   
         <MudTd @onclick:stopPropagation="true">
             <MudIconButton Icon="@Icons.Material.Filled.Edit"
@@ -63,9 +51,6 @@
             <MudIconButton Icon="@Icons.Material.Filled.Delete"
             Color="Color.Error"
             OnClick="@(() => ShowDeleteDialogAsync(context.Id))" />
-            <MudIconButton Icon="@Icons.Material.Filled.PersonAdd"
-                           Color="Color.Info"
-                           OnClick="@(() => ShowAssignDialogAsync(context))" />
         </MudTd>
     </RowTemplate>
     <PagerContent> 
@@ -75,7 +60,6 @@
 
 @code {
     private TicketDto[]? tickets;
-    private int? editingStateId;
 
 
     protected override async Task OnInitializedAsync()
@@ -92,7 +76,7 @@
         var result = await dialog.Result;
         if (result?.Data is TicketDto nuevo)
         {
-                tickets = tickets?.Append(nuevo).ToArray();
+            tickets = tickets?.Append(nuevo).ToArray();
         }
     }
 
@@ -107,15 +91,15 @@
 
         if (result == true)
         {
-                var ok = await ticketService.DeleteTicketAsync(id);
-                if (ok == true) 
-                { 
-                    tickets = tickets?.Where(t => t.Id != id).ToArray(); 
-                } 
-                else 
-                { 
-                    snackbar.Add("No se pudo eliminar el ticket", Severity.Error);
-                }
+            var ok = await ticketService.DeleteTicketAsync(id);
+            if (ok == true) 
+            { 
+                tickets = tickets?.Where(t => t.Id != id).ToArray(); 
+            } 
+            else 
+            { 
+                snackbar.Add("No se pudo eliminar el ticket", Severity.Error);
+            }
 
         }
     }
@@ -129,35 +113,17 @@
         var result = await dialog.Result;
         if (result?.Data is TicketDto edit)
         {
-                tickets = tickets?.Select(t => t.Id == edit.Id ? edit : t).ToArray();
+            tickets = tickets?.Select(t => t.Id == edit.Id ? edit : t).ToArray();
         }
-        
+
     }
 
-    //Asigno que este editando segun el item que de clic
+    //Redirect a la pagina del detalle
     private void SelectedRow(TableRowClickEventArgs<TicketDto> e)
     {
-        editingStateId = e.Item.Id;
+        navigationManager.NavigateTo($"/tickets/{e.Item!.Id}");
     }
 
-    //Guardo el estado nuevo
-    private async Task SaveStateAsync(TicketDto ticket, EstadoTicket nuevo)
-    {
-        var dto = new PutTicketStateDto { EstadoTicket = nuevo };
-
-        //Llamo al metodo del servicio para cambiar el estado del ticket
-        var hasUpdated = await ticketService.ChangeTicketStateAsync(ticket.Id, dto);
-        //Si tiene contenido (se actualizo) lo cambio directo al array de la tabla, si no, snackbar de error
-        if (hasUpdated)
-        {
-            ticket.Estado = nuevo;
-            editingStateId = null;
-        }
-        else
-        {
-            snackbar.Add("No se pudo editar el estado del ticket seleccionado", Severity.Error);
-        }
-    }
     //Muestro el dialogo de asignar agente
     private async Task ShowAssignDialogAsync(TicketDto ticketAAsignar)
     {

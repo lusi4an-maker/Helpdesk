@@ -11,5 +11,6 @@ public class Ticket
     public int? AgenteAsignadoId {get; set;}
     public EstadoTicket Estado {get; set;} = EstadoTicket.Abierto;
     public Usuario? Usuario {get; set;}
+    public PrioridadTicket Prioridad { get; set; } = PrioridadTicket.Media;
 
 }

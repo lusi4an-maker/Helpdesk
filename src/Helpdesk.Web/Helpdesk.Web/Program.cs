@@ -49,6 +49,7 @@ builder.Services.AddScoped(sp =>
 });
 //servicio de tickets
 builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<ITicketDetalleService, TicketDetalleService>();
 //Servicio de usuarios
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 

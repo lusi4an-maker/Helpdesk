@@ -1,14 +1,15 @@
 ﻿using System.Net.Http.Json;
-
 using Helpdesk.Web.Dtos;
 using Helpdesk.Web.Extensions;
 using Helpdesk.Web.Json;
+using System.Net;
 
 namespace Helpdesk.Web.Services;
 
 public interface ITicketService
 {
     Task<TicketDto[]> GetTicketsAsync();
+    Task<TicketResponseDto> GetTicketAsync(int ticketid);
     Task<ResultadoApi<TicketDto>> CreateTicketAsync(CrearTicketDto dto);
     Task<bool> DeleteTicketAsync(int id);
     Task<ResultadoApi> UpdateTicketAsync(int id, PutTicketDto dto);
@@ -21,6 +22,25 @@ public class TicketService(HttpClient http) : ITicketService
     public async Task<TicketDto[]> GetTicketsAsync()
     {
         return await http.GetFromJsonAsync<TicketDto[]>("tickets", JsonConfig.Options) ?? [];
+    }
+
+    public async Task<TicketResponseDto> GetTicketAsync(int ticketid)
+    {
+        var response = await http.GetAsync($"tickets/{ticketid}");
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return new TicketResponseDto(null, EstadoResponse.NoEncontrado);
+        }
+        else if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            return new TicketResponseDto(null, EstadoResponse.Prohibido);
+        }
+        else
+        {
+            var ticket = await response.Content.ReadFromJsonAsync<TicketDto>(JsonConfig.Options);
+            
+            return new TicketResponseDto(ticket, EstadoResponse.Ok);
+        }
     }
 
     public async Task<ResultadoApi<TicketDto>> CreateTicketAsync(CrearTicketDto dto)
@@ -75,4 +95,5 @@ public class TicketService(HttpClient http) : ITicketService
             return new ResultadoApi(false, await message.LeerErrorAsync());
         }
     }
+
 }
