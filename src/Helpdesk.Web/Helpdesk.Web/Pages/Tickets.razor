@@ -10,69 +10,129 @@
 @inject IDialogService dialogService;
 @inject ISnackbar snackbar;
 @inject NavigationManager navigationManager;
+@inject ILocalStorageService storage;
 
 @attribute [Authorize]
-<h3>Tickets</h3>
-
-<MudTable T="TicketDto" Items="tickets ?? []" Hover="true" Bordered="true" Loading="tickets is null" OnRowClick="SelectedRow" >
-    <ToolBarContent>
-        <MudText Typo="Typo.h6">Lista de Tickets</MudText>
-        <MudSpacer/>
-        <MudButton 
-            Variant="Variant.Filled" 
-            Color="Color.Primary" 
-            StartIcon="@Icons.Material.Filled.Add"
-            OnClick="OpenDialogAsync">
-            Nuevo Ticket
+    
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+    <MudText Typo="Typo.h5">Tickets</MudText>
+    <MudStack Row="true">
+        <MudToggleGroup T="VistasTickets"
+                        Value="vista"
+                        ValueChanged="ChangeViewAsync">
+            <MudToggleItem Value="VistasTickets.Tabla" Text="Tabla" />
+            <MudToggleItem Value="VistasTickets.Tarjetas" Text="Tarjetas" />
+        </MudToggleGroup>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenDialogAsync">
+            Crear Ticket
         </MudButton>
-    </ToolBarContent>
-    <HeaderContent>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Id)">ID</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Titulo)">Titulo</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Descripcion)">Descripcion</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.FechaCreacion)">Fecha de Creacion</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.NombreCreador)">Autor</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.NombreAgente)">Asignado a</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Estado)">Estado</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Prioridad)">Prioridad</MudTableSortLabel></MudTh>
-    </HeaderContent>
-    <RowTemplate >
-        <MudTd DataLabel="ID">@context.Id</MudTd>
-        <MudTd DataLabel="Titulo">@context.Titulo</MudTd>
-        <MudTd DataLabel="Descripcion">@context.Descripcion</MudTd>
-        <MudTd DataLabel="Fecha de Creacion">@context.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</MudTd>
-        <MudTd DataLabel="Autor">@context.NombreCreador</MudTd>
-        <MudTd DataLabel="Asignado a">@(context.NombreAgente ?? "Sin asignar")</MudTd>
-        <MudTd DataLabel="Estado">
-                <MudChip T="EstadoTicket">@context.Estado</MudChip>
-        </MudTd>
-        <MudTd DataLabel="Prioridad">
-            <MudStack Row="true">
-                <MudIcon Icon="@Icons.Material.Filled.Circle" Color="@context.Prioridad.GetColor()" />
-                <MudText>@context.Prioridad</MudText>
-            </MudStack>
-        </MudTd>
-        <MudTd @onclick:stopPropagation="true">
-            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-            Color="Color.Secondary"
-            OnClick="@(() => ShowUpdateDialogAsync(context))"/>
-            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-            Color="Color.Error"
-            OnClick="@(() => ShowDeleteDialogAsync(context.Id))" />
-        </MudTd>
-    </RowTemplate>
-    <PagerContent> 
-        <MudTablePager PageSizeOptions="new int[] {5, 10, 25}"/>
-    </PagerContent>
-</MudTable>
+    </MudStack>
+</MudStack>
+
+@if (vista == VistasTickets.Tabla) 
+{
+        <MudTable T="TicketDto" Items="tickets ?? []" Hover="true" Bordered="true" Loading="tickets is null" OnRowClick="SelectedRow" >
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Id)">ID</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Titulo)">Titulo</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Descripcion)">Descripcion</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.FechaCreacion)">Fecha de Creacion</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.NombreCreador)">Autor</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.NombreAgente)">Asignado a</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Estado)">Estado</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<TicketDto, object>(x => x.Prioridad)">Prioridad</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate >
+            <MudTd DataLabel="ID">@context.Id</MudTd>
+            <MudTd DataLabel="Titulo">@context.Titulo</MudTd>
+            <MudTd DataLabel="Descripcion">@context.Descripcion</MudTd>
+            <MudTd DataLabel="Fecha de Creacion">@context.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Autor">@context.NombreCreador</MudTd>
+            <MudTd DataLabel="Asignado a">@(context.NombreAgente ?? "Sin asignar")</MudTd>
+            <MudTd DataLabel="Estado">
+                    <MudChip T="EstadoTicket">@context.Estado</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Prioridad">
+                <MudStack Row="true">
+                    <MudIcon Icon="@Icons.Material.Filled.Circle" Color="@context.Prioridad.GetColor()" />
+                    <MudText>@context.Prioridad</MudText>
+                </MudStack>
+            </MudTd>
+            <MudTd @onclick:stopPropagation="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                Color="Color.Secondary"
+                OnClick="@(() => ShowUpdateDialogAsync(context))"/>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                Color="Color.Error"
+                OnClick="@(() => ShowDeleteDialogAsync(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent> 
+            <MudTablePager PageSizeOptions="new int[] {5, 10, 25}"/>
+        </PagerContent>
+    </MudTable>
+}
+else
+{
+    @*Si esta cargando se queda en skeleton view*@
+    @if (tickets is null)
+    {
+        <MudSkeleton />
+    }
+    else 
+    {
+        <MudGrid>
+            @foreach (var ticket in tickets)
+            {
+                <MudItem xs="12" md="3">
+                    <MudCard @onclick="@(() => NavigateToDetail(ticket.Id))" Style="cursor:pointer">
+                        <MudCardContent>
+                            @*Muestro el titulo y estado en la misma fila*@
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.subtitle1">@ticket.Titulo</MudText>
+                                <MudChip T="EstadoTicket">@ticket.Estado</MudChip>
+                            </MudStack>
+                            @*Si la descripcion es mas de 80 caracteres, se agregan '...'*@
+                            <MudText Typo="Typo.body2">
+                                @(ticket.Descripcion.Length > 80 ? ticket.Descripcion[..80] + "..." : ticket.Descripcion)
+                            </MudText>
+                            @*Chip de prioridad*@
+                            <MudStack Row="true">
+                                <MudIcon Icon="@Icons.Material.Filled.Circle" Color="@ticket.Prioridad.GetColor()" />
+                                <MudText>@ticket.Prioridad</MudText>
+                            </MudStack>
+                            <MudDivider Class="my-2"/>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudStack Row="true">
+                                    <MudAvatar Size="Size.Small">@InicialHelper.InicialesHelper(ticket.NombreAgente)</MudAvatar>
+                                    <MudText>@(ticket.NombreAgente ?? "Sin Asignar")</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.caption">@ticket.FechaCreacion.ToString("dd/MM/yyyy")</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+}
 
 @code {
     private TicketDto[]? tickets;
+    private VistasTickets vista = VistasTickets.Tabla;
 
 
     protected override async Task OnInitializedAsync()
     {
-        tickets = await ticketService.GetTicketsAsync();   
+        tickets = await ticketService.GetTicketsAsync();
+        var guardada = await storage.GetItemAsync("vistaTickets");
+        if (!string.IsNullOrEmpty(guardada) && Enum.TryParse<VistasTickets>(guardada, out var v))
+        {
+            vista = v;
+        }
     }
 
     private async Task OpenDialogAsync()
@@ -126,10 +186,14 @@
 
     }
 
-    //Redirect a la pagina del detalle
+    //Redirect a la pagina del detalle en ambas vistas
     private void SelectedRow(TableRowClickEventArgs<TicketDto> e)
     {
         navigationManager.NavigateTo($"/tickets/{e.Item!.Id}");
+    }
+    private void NavigateToDetail(int ticketId)
+    {
+        navigationManager.NavigateTo($"tickets/{ticketId}");
     }
 
     //Muestro el dialogo de asignar agente
@@ -140,7 +204,14 @@
         var dialog = await dialogService.ShowAsync<AsignarAgenteDialog>("Asignar agente", parameters, options);
 
         await dialog.Result;
-        
+
+    }
+
+    //Handler para guardar el estado de vista 
+    private async Task ChangeViewAsync(VistasTickets nueva)
+    {
+        vista = nueva;
+        await storage.SetItemAsync("vistaTickets", nueva.ToString());
     }
 
 }
