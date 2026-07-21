@@ -1,14 +1,139 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Security.Claims;
+@using Helpdesk.Web.Helpers
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
 
-<MudThemeProvider/>
+@inject ILocalStorageService storage;
+@inject NavigationManager navigation;
+@inject IAuthService auth;
+
+<MudThemeProvider @ref="themeProvider" @bind-IsDarkMode="isDarkMode"/>
 <MudPopoverProvider/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>
 
 <MudLayout>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-            @Body
-        </MudContainer>
-    </MudMainContent>
+
+    <AuthorizeView>
+        <Authorized>
+            <MudDrawer @bind-Open="drawerOpen" Variant="DrawerVariant.Mini">
+                @*instancio el drawer*@
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="ToggleDrawer" />
+        
+                @*Vista del nav para el cliente*@
+                <AuthorizeView Roles="Cliente">
+                    <Authorized Context="vistaCliente">
+                        <MudNavMenu>
+                            <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Inicio</MudNavLink>
+                            <MudNavLink Href="/tickets" Icon="@Icons.Material.Filled.Assignment">Mis Tickets</MudNavLink>
+                            <MudNavLink Href="/mi-perfil" Icon="@Icons.Material.Filled.Person">Mi Perfil</MudNavLink>
+                        </MudNavMenu>
+                    </Authorized>
+                </AuthorizeView>
+
+                @*Vista del nav para el personal*@
+                <AuthorizeView Roles="Agente,Analista">
+                    <Authorized Context="vistaAgenteAnalista">
+                        <MudNavMenu>
+                            <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Inicio</MudNavLink>
+                            <MudNavLink Href="/tickets" Icon="@Icons.Material.Filled.AssignmentInd">Tickets Asignados</MudNavLink>
+                            <MudNavLink Href="/tickets" Icon="@Icons.Material.Filled.Assignment">Todos los Tickets</MudNavLink>
+                            <MudNavLink Href="/mi-perfil" Icon="@Icons.Material.Filled.Person">Mi Perfil</MudNavLink>
+                        </MudNavMenu>
+                    </Authorized>
+                </AuthorizeView>
+
+                @*Vista del nav para administradores*@
+                <AuthorizeView Roles="Administrador,Gerente">
+                    <Authorized Context="vistaAdmins">
+                        <MudNavMenu>
+                            <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Inicio</MudNavLink>
+                            <MudNavLink Href="/tickets" Icon="@Icons.Material.Filled.Assignment">Tickets</MudNavLink>
+                            <MudNavLink Href="/usuarios" Icon="@Icons.Material.Filled.People">Usuarios</MudNavLink>
+                            <MudNavLink Href="/reportes" Icon="@Icons.Material.Filled.BarChart">Reportes</MudNavLink>
+                            <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">Configuracion</MudNavLink>
+                        </MudNavMenu>
+                    </Authorized>
+                </AuthorizeView>
+
+
+                @*Card de usuario*@
+                <MudStack Style="margin-top:auto; width:100%; overflow-x:hidden">
+                    
+                    @*Declaro las variables para el usuario*@
+                    @{
+                        var nombre = context.User.Identity?.Name;
+                        var rol = context.User.FindFirst("role")?.Value;
+                    }
+
+                    <MudCard>
+                        @*toggle de modo oscuro*@
+                        <MudIconButton Icon="@Icons.Material.Filled.DarkMode" OnClick="ToggleDarkMode" />
+
+                        @*dibujo el avatar con el helper*@
+                        <MudStack Row="true">
+                            <MudAvatar>@InicialHelper.InicialesHelper(nombre)</MudAvatar>
+
+                            @*datos del usuario*@
+                            <MudStack>
+                                <MudText Typo="Typo.body1">@nombre</MudText>
+                                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">@rol</MudText>
+                            </MudStack>
+
+                            @*Boton de logout*@
+                            <MudIconButton Icon="@Icons.Material.Filled.Logout" Style="margin-left:auto;" OnClick="CerrarSesion" />
+                        </MudStack>
+                    </MudCard>
+                </MudStack>
+            </MudDrawer>
+       </Authorized>
+    </AuthorizeView>
+
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+                @Body
+            </MudContainer>
+        </MudMainContent>
 </MudLayout>
+
+@code{
+    private bool drawerOpen = true;
+    //Cambio el estado de la side bar
+    private void ToggleDrawer() => drawerOpen = !drawerOpen;
+
+    //Campos para el modo oscuro
+    private MudThemeProvider themeProvider = null!;
+    private bool isDarkMode;
+    //Guardo el modo oscuro en memoria
+    private async Task ToggleDarkMode()
+    {
+        isDarkMode = !isDarkMode;
+        await storage.SetItemAsync("modoOscuro", isDarkMode.ToString());
+    }
+
+
+    //Veo si el usuario ya tiene alguna preferencia, sino, agarra del sistema
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var guardado = await storage.GetItemAsync("modoOscuro");
+            if (!string.IsNullOrEmpty(guardado))
+            {
+                bool.TryParse(guardado, out isDarkMode);
+            }
+            else
+            {
+                isDarkMode = await themeProvider.GetSystemDarkModeAsync();
+            }
+            StateHasChanged();
+        }
+    }
+
+    //Metodo para el logout
+    private async Task CerrarSesion()
+    {
+        await auth.LogoutAsync();
+        navigation.NavigateTo("/");
+    }
+}

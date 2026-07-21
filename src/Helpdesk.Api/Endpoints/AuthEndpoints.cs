@@ -67,12 +67,13 @@ public static class AuthEndpoints
     //Generamos el token para usarlo
     private static string GenerarToken(Usuario usuario, IConfiguration config)
     {
-        //Defino los claims a usar (id y rol de usuario)
+        //Defino los claims a usar (id, rol de usuario y su nombre real)
         var claimList = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
             new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
-            new Claim("debe_cambiar_credenciales", $"{usuario.DebeCambiarCredenciales}", ClaimValueTypes.Boolean)
+            new Claim("debe_cambiar_credenciales", $"{usuario.DebeCambiarCredenciales}", ClaimValueTypes.Boolean),
+            new Claim(ClaimTypes.Name, usuario.NombrePila)
 
         };
         
