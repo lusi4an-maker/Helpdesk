@@ -1,0 +1,196 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Helpdesk.Web.Models
+
+@inject ITicketService ticketService;
+@inject ISnackbar snackbar;
+
+@page "/"
+@attribute [Authorize];
+
+
+@if (cargando)
+{
+    <MudSkeleton/> 
+}
+else if (stats is null)
+{
+    <MudAlert Severity="Severity.Error">
+        No se pudo obtener tus tickets, contacte a soporte.
+    </MudAlert>
+}
+else
+{
+    <MudContainer>
+        <AuthorizeView Roles="Cliente">
+            <Authorized>
+                @*Saludo al cliente y le digo cuantos tickets en total tiene*@
+                <MudStack>
+                    <MudText Typo="Typo.h5" Color="Color.Primary">Hola, @context.User.Identity?.Name</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Default">@($"Tenes {stats.Total} tickets registrados! Asi esta el estado de tus tickets:")</MudText>
+                </MudStack>
+
+                @*barra de estados y creado de ticket*@
+                <MudStack Row="true">
+                    @*Boton para crear un ticket nuevo*@
+                    <MudButton StartIcon="@Icons.Material.Filled.Add">
+                        Crear Ticket
+                     </MudButton>
+
+                    @*Barra de estados*@
+                    <MudStack Row="true">
+                        @ticketStatChip(stats.Abierto, EstadoTicket.Abierto)
+                        @ticketStatChip(stats.EnProgreso, EstadoTicket.EnProgreso)
+                        @ticketStatChip(stats.Cerrado, EstadoTicket.Cerrado)
+                    </MudStack>
+                    
+                </MudStack>
+            </Authorized>
+        </AuthorizeView> 
+
+        <AuthorizeView Roles="Agente,Analista">
+            <Authorized>
+                @*Saludo al agente, le digo si tiene pendientes y su total*@
+                <MudStack>
+                    <MudText Typo="Typo.h5" Color="Color.Primary">Hola, @context.User.Identity?.Name</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Default">@($"Tienes {stats.Total} tickets asignados! {pendingStatsAsk(stats.Pendiente)}")</MudText>
+                </MudStack>
+
+                @*Barra de estados*@
+                <MudGrid Class="pa-12">
+                    @ticketStatsCard(stats.Abierto, EstadoTicket.Abierto)
+                    @ticketStatsCard(stats.EnProgreso, EstadoTicket.EnProgreso)
+                    @ticketStatsCard(stats.Pendiente, EstadoTicket.Pendiente)
+                    @ticketStatsCard(stats.Cerrado, EstadoTicket.Cerrado)
+                </MudGrid>
+                
+            </Authorized>
+        </AuthorizeView>
+
+
+        <AuthorizeView Roles="Administrador,Gerente">
+            <Authorized>
+                @*Saludo al admin, le digo si tiene pendientes y su total*@
+                <MudStack>
+                    <MudText Typo="Typo.h5" Color="Color.Primary">Hola, @context.User.Identity?.Name</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Default">@($"Resumen general del sistema - {sinasignarStats(stats.SinAsignar)}")</MudText>
+                </MudStack>
+
+                @*Barra de estados*@
+                <MudGrid Class="pa-12">
+                    @ticketStatsCard(stats.Abierto, EstadoTicket.Abierto)
+                    @ticketStatsCard(stats.EnProgreso, EstadoTicket.EnProgreso)
+                    @ticketStatsCard(stats.Cerrado, EstadoTicket.Cerrado)
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudCard>
+                                <MudCardContent>
+                                    <MudStack>
+                                        <MudAvatar Color="Color.Default"><MudIcon Icon="@Icons.Material.Filled.PersonOff" /> </MudAvatar>
+                                    </MudStack>
+                                    <MudStack>
+                                        <MudText Typo="Typo.h6">@stats.SinAsignar</MudText>
+                                        <MudText Typo="Typo.body1">Sin Asignar</MudText>
+                                    </MudStack>
+                                </MudCardContent>
+                            </MudCard>
+                        </MudItem>
+                </MudGrid>
+
+            </Authorized>
+        </AuthorizeView>
+    </MudContainer>
+    
+       
+}
+
+
+
+
+@code {
+    private TicketsStatsDto? stats;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        stats = await ticketService.GetTicketsStatsAsync();
+        if (stats is null)
+        {
+            snackbar.Add("No se pudo obtener tus tickets, contacte a soporte.", Severity.Error);
+        }
+        cargando = false;
+    }
+
+    //Para no repetir los chips, tood en la misma estructura
+    private RenderFragment ticketStatChip(int Cantidad, EstadoTicket Estado) =>
+        @<MudChip T="string" Color="@Estado.GetColor()" Variant="Variant.Filled">
+            @*Si es mas de uno se pluraliza*@
+            @Cantidad @(pluralStats(Cantidad, Estado))
+        </MudChip>
+    ;
+
+    //Fragment para agentes y admins
+    private RenderFragment ticketStatsCard(int Cantidad, EstadoTicket estado) =>
+        @<MudItem xs="12" sm="6" md="3">
+            <MudCard>
+                <MudCardContent>
+                        <MudStack>
+                            <MudAvatar Color="@estado.GetColor()"><MudIcon Icon="@(estado.GetIcons())"/> </MudAvatar>
+                        </MudStack>
+                        <MudStack>
+                            <MudText Typo="Typo.h6">@Cantidad</MudText>
+                            <MudText Typo="Typo.body1">@(pluralStats(Cantidad, estado))</MudText>
+                        </MudStack>
+                </MudCardContent>
+            </MudCard>  
+        </MudItem>
+    ;
+
+
+
+    //Pluralizo los estados
+    string pluralStats(int Cantidad, EstadoTicket estado)
+    {
+        if (Cantidad != 1 && estado is not EstadoTicket.EnProgreso)
+        {
+            return estado + "s";
+        }
+        else
+        {
+            return estado.ToString();
+        }
+    }
+
+    //Condicion si hay pendientes se muestra para el usuario (agente o admins)
+    string pendingStatsAsk(int pendientes)
+    {
+        if (pendientes > 1)
+        {
+            return $"Tienes {pendientes} tickets pendientes.";
+        }
+        else if (pendientes == 1)
+        {
+            return $"Tienes {pendientes} ticket pendiente.";
+        }
+        else
+        {
+            return "No tienes tickets pendientes!";
+        }
+    }
+
+    //Si hay tickets sin asignar
+    string sinasignarStats(int Cantidad)
+    {
+        if (Cantidad > 1)
+        {
+            return $"{Cantidad} tickets sin asignar requieren atencion.";
+        }
+        else if (Cantidad == 1)
+        {
+            return $"{Cantidad} ticket sin asignar, echa un vistazo.";
+        }
+        else
+        {
+            return "Todos los tickets tienen asignacion!";
+        }
+    }
+}

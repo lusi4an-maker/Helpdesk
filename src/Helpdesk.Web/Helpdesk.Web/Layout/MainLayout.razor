@@ -134,6 +134,6 @@
     private async Task CerrarSesion()
     {
         await auth.LogoutAsync();
-        navigation.NavigateTo("/");
+        navigation.NavigateTo("/login");
     }
 }

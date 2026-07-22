@@ -1,4 +1,4 @@
-﻿@page "/"
+﻿
 @page "/login"
 @using Helpdesk.Web.Services;
 @using MudBlazor;
@@ -32,7 +32,7 @@
             try
             {
                 await AuthService.LoginAsync(nombre, password);
-                navigationManager.NavigateTo("/tickets");
+                navigationManager.NavigateTo("/");
             } 
             catch
             {

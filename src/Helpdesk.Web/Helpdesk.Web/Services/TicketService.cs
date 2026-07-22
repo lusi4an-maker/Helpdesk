@@ -16,6 +16,7 @@ public interface ITicketService
     Task<bool> ChangeTicketStateAsync(int id, PutTicketStateDto dto);
     Task<ResultadoApi> AssignTicketAsync(int ticketId, AsignarTicketDto dto);
     Task<bool> ChangeTicketPriorityAsync(int ticketId, ActualizarPrioridadTicketDto dto);
+    Task<TicketsStatsDto?> GetTicketsStatsAsync();
 }
 
 public class TicketService(HttpClient http) : ITicketService
@@ -103,4 +104,17 @@ public class TicketService(HttpClient http) : ITicketService
         return message.IsSuccessStatusCode;
     }
 
+
+    //Obtengo las stats de los tickets segun el usuario que este el logueado --- Ver Endpoint
+    public async Task<TicketsStatsDto?> GetTicketsStatsAsync()
+    {
+        try
+        {
+            return await http.GetFromJsonAsync<TicketsStatsDto?>("tickets/stats", JsonConfig.Options);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

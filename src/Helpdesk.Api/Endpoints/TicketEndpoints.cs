@@ -7,6 +7,8 @@ using Helpdesk.Api.Models;
 
 using Microsoft.EntityFrameworkCore;
 
+using static System.Net.WebRequestMethods;
+
 namespace Helpdesk.Api.Endpoints;
 
 public static class TicketEndpoints
@@ -18,6 +20,7 @@ public static class TicketEndpoints
         //Gets
         group.MapGet("/", GetTickets);
         group.MapGet("/{id}", GetTicketId);
+        group.MapGet("/stats", GetStats);
         //Posts
         group.MapPost("/", PostTicket);
         //Puts
@@ -47,15 +50,10 @@ public static class TicketEndpoints
             return Results.Unauthorized();
         }
 
-        //Si es cliente, solo ve sus propios tickets, si es agente/analista, solo los que se les asigno. Admin y Gerencia ve todos.
-        if (rol == "Cliente")
-        {
-            query = query.Where(t => t.UsuarioCreo == int.Parse(usuario));
-        }
-        else if (rol == "Agente" || rol == "Analista")
-        {
-            query = query.Where(t => t.AgenteAsignadoId == int.Parse(usuario));
-        }
+        var usuarioInt = int.Parse(usuario);
+
+        query = FiltrarPorRol(query, rol, usuarioInt);
+
         return Results.Ok(await query.Select(t => new TicketResponseDto(
                                                         t.Id, 
                                                         t.Titulo, 
@@ -301,4 +299,63 @@ public static class TicketEndpoints
         await contexto.SaveChangesAsync();
         return Results.NoContent();
     }
+
+    //Obtengo el query de ticket
+    private static IQueryable<Ticket> FiltrarPorRol(IQueryable<Ticket> query, string? rol, int usuarioId)
+    {
+        
+        //Si es cliente, solo ve sus propios tickets, si es agente/analista, solo los que se les asigno. Admin y Gerencia ve todos.
+        if (rol == "Cliente")
+        {
+            query = query.Where(t => t.UsuarioCreo == usuarioId);
+        }
+        else if (rol == "Agente" || rol == "Analista")
+        {
+            query = query.Where(t => t.AgenteAsignadoId == usuarioId);
+        }
+        return query;
+    }
+
+    //Obtener estadisticas
+    private static async Task<IResult> GetStats(ClaimsPrincipal user, HelpdeskDbContext contexto)
+    {
+        var rol = user.FindFirstValue(ClaimTypes.Role);
+        var usuario = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        var query = contexto.Tickets.AsQueryable();
+
+        if (usuario is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var usuarioInt = int.Parse(usuario);
+
+        //agrupo por estado y cantidad
+        var agrupados = await FiltrarPorRol(query, rol, usuarioInt)
+            .GroupBy(t => t.Estado)
+            .Select(g => new { Estado = g.Key, Cantidad = g.Count() })
+            .ToListAsync();
+
+        var total = agrupados.Sum(c => c.Cantidad);
+
+        //cuanto los sin asignar
+        var sinAsignar = await FiltrarPorRol(query, rol, usuarioInt)
+            .Where(t => t.AgenteAsignadoId == null)
+            .CountAsync();
+
+        //funcion para contar los agrupados
+        int ContarEstado(EstadoTicket estado) => agrupados.FirstOrDefault(t => t.Estado == estado)?.Cantidad ?? 0;
+
+        return Results.Ok(new TicketStatsDto(
+                total,
+                ContarEstado(EstadoTicket.Abierto),
+                ContarEstado(EstadoTicket.EnProgreso),
+                ContarEstado(EstadoTicket.Hecho),
+                ContarEstado(EstadoTicket.Pendiente),
+                ContarEstado(EstadoTicket.Cerrado),
+                sinAsignar
+            ));
+    }
+
+    
 }
