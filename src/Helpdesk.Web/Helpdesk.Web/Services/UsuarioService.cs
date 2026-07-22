@@ -1,5 +1,8 @@
 ﻿
 using System.Net.Http.Json;
+using System.Reflection.Metadata.Ecma335;
+using System.Security.Claims;
+
 using Helpdesk.Web.Dtos;
 using Helpdesk.Web.Extensions;
 using Helpdesk.Web.Json;
@@ -15,6 +18,7 @@ public interface IUsuarioService
     Task<ResultadoApi> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto);
     Task<UsuarioDto[]> GetUsuariosAsignablesAsync();
     Task<ResultadoApi> UpdateUsuarioRolAsync(int id, ActualizarRolDto dto);
+    Task<UsuarioDto?> GetMiPerfilAsync();
 }
 
 public class UsuarioService (HttpClient http) : IUsuarioService
@@ -63,6 +67,7 @@ public class UsuarioService (HttpClient http) : IUsuarioService
         return response.IsSuccessStatusCode;
     }
 
+    
     public async Task<ResultadoApi> ResetPasswordUsuarioAsync(int id, ResetPasswordDto dto)
     {
         var hasChanged = await http.PutAsJsonAsync($"usuarios/{id}/password", dto);
@@ -92,5 +97,19 @@ public class UsuarioService (HttpClient http) : IUsuarioService
         {
             return new ResultadoApi(false, await updated.LeerErrorAsync());
         }
+    }
+
+    //Obtengo el usuario logueado
+    public async Task<UsuarioDto?> GetMiPerfilAsync()
+    {
+        try
+        {
+            return await http.GetFromJsonAsync<UsuarioDto?>("usuarios/me", JsonConfig.Options);
+        }
+        catch
+        {
+            return null;
+        }
+
     }
 }

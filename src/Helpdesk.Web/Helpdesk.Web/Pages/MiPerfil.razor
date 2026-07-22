@@ -1,0 +1,85 @@
+﻿@using Helpdesk.Web.Dtos;
+@using Helpdesk.Web.Models;
+
+
+@inject IUsuarioService usuarioService;
+@inject ISnackbar snackbar;
+
+@page "/mi-perfil"
+
+@if (cargando) 
+{ 
+    <MudSkeleton/> 
+} 
+else if (perfil is null) 
+{
+    <MudAlert Severity="Severity.Error">
+        No se pudo obtener tu usuario, contacte a soporte
+    </MudAlert>
+} 
+else 
+{
+    <MudContainer>
+        <MudCard>
+            <MudCardHeader>
+                @*Banner y avatar con chip de rol*@
+                <MudStack Row="true">
+                    <MudChip T="RolUsuario" Color="Color.Default">@perfil.Rol</MudChip>
+                    <MudAvatar>@InicialHelper.InicialesHelper($"{perfil.NombrePila} {perfil.ApellidoPila}")</MudAvatar>
+                </MudStack>
+            </MudCardHeader>
+
+            <MudCardContent>
+                @*Nombres y estado*@
+                <MudStack>
+                    <MudText Typo="Typo.h5">@(perfil.NombrePila + " " + perfil.ApellidoPila)</MudText>
+                    <MudChip T="EstadoUsuario" Color="@perfil.Estado.GetColor()">@perfil.Estado</MudChip>
+                </MudStack>
+
+                @*Nombre de pila y apellido, Id de usuario y su rol*@
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Identidad</MudText>
+                <MudGrid>
+                    @Dato("Nombre de Pila", perfil.NombrePila!)
+                    @Dato("Apellido", perfil.ApellidoPila!)
+                    @Dato("Id de Usuario", perfil.Id.ToString())
+                    @Dato("Rol", perfil.Rol.ToString())
+                </MudGrid>
+
+                @*Email del usuario*@
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Cuenta</MudText>
+                <MudGrid>
+                    @Dato("Email", perfil.Email!)
+                </MudGrid>
+            </MudCardContent>
+            
+        </MudCard>
+    </MudContainer>
+}
+
+
+
+
+@code {
+    private UsuarioDto? perfil;
+    private bool cargando = true;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        perfil = await usuarioService.GetMiPerfilAsync();
+        if (perfil is null)
+        {
+            snackbar.Add("No se pudo obtener tu usuario, contacte a soporte.", Severity.Error);
+        }
+        cargando = false;
+    }
+
+    //Metodo renderfragment para no repetir estructura
+    private RenderFragment Dato(string label, string valor) =>
+        @<MudItem xs="12" sm="6">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@label</MudText>
+                <MudText Typo="Typo.body1">@valor</MudText>
+            </MudStack>
+        </MudItem>;
+}

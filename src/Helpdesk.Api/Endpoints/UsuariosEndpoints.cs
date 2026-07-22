@@ -3,6 +3,7 @@ using Helpdesk.Api.Data;
 using Helpdesk.Api.Dtos;
 using Helpdesk.Api.Models;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace Helpdesk.Api.Endpoints;
 
@@ -19,6 +20,8 @@ public static class UsuariosEndpoints
             .RequireAuthorization("SoloAdmins");
         group.MapGet("/asignables", GetUsuariosAsignables)
             .RequireAuthorization("SoloAdmins");
+        group.MapGet("/me", GetMiUsuario)
+            .RequireAuthorization();
         //Post
         group.MapPost("/", PostUsuario)
             .RequireAuthorization("SoloAdmins");
@@ -236,6 +239,42 @@ public static class UsuariosEndpoints
             )).ToListAsync();
 
         return Results.Ok(uAsignables);
+    }
+
+    //Obtengo el usuario logueado
+    private static async Task<IResult> GetMiUsuario(ClaimsPrincipal user, HelpdeskDbContext contexto)
+    {
+        //Obtengo el id atraves del claim
+        //Lo paso a entero
+        if (!int.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out int usuarioInt))
+        {
+            return Results.Unauthorized(); //Si el parse falla, no esta autorizado
+        }
+        else
+        {
+            //Busco el usuario en la base
+            var usuario = await contexto.Usuarios.FindAsync(usuarioInt);
+
+            //Si no existe, not found
+            if (usuario is null)
+            {
+                return Results.NotFound();
+            }
+
+            //Si existe, se mapea al DTO de respuesta y retorna
+            var dto = new UsuarioResponseDto
+            (
+                usuarioInt,
+                usuario.Nombre,
+                usuario.Email,
+                usuario.NombrePila,
+                usuario.ApellidoPila,
+                usuario.Rol,
+                usuario.Estado
+                );
+
+            return Results.Ok(dto);
+        }
     }
 
 }
