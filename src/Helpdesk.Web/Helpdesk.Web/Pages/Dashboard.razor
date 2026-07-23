@@ -98,6 +98,23 @@ else
 
             </Authorized>
         </AuthorizeView>
+
+
+        @*Grafico Donut*@
+        <MudPaper Class="pa-4" Style="max-width:350px">
+            <MudText>
+                Distribucion por estado
+            </MudText>
+            @if (donutData.Length == 0)
+            {
+                <MudText>Sin tickets para mostrar</MudText>
+            }
+            else
+            {
+                <MudChart T="double" ChartType="ChartType.Donut" ChartSeries="donutSeries" ChartLabels="donutLabels"> </MudChart>
+            }
+        </MudPaper>
+
     </MudContainer>
     
        
@@ -109,6 +126,9 @@ else
 @code {
     private TicketsStatsDto? stats;
     private bool cargando = true;
+    private double[] donutData = [];
+    private string[] donutLabels = [];
+    private List<ChartSeries<double>> donutSeries = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -117,8 +137,38 @@ else
         {
             snackbar.Add("No se pudo obtener tus tickets, contacte a soporte.", Severity.Error);
         }
+        else
+        {
+            //Inicializo la lista de pares
+            var paresStats = new List<(EstadoTicket estado, int cantidad)>
+            {
+                (EstadoTicket.Abierto, stats.Abierto),
+                (EstadoTicket.EnProgreso, stats.EnProgreso),
+                (EstadoTicket.Hecho, stats.Hecho),
+                (EstadoTicket.Pendiente, stats.Pendiente),
+                (EstadoTicket.Cerrado, stats.Cerrado)
+            };
+            var conDatos = paresStats.Where(p => p.cantidad > 0).ToList();
+
+            //Para los datos selecciono su cantidad, para estado lo paso a string
+            donutData = conDatos.Select(cd => (double)cd.cantidad).ToArray();
+            donutLabels = conDatos.Select(cd => cd.estado.ToString()).ToArray();
+
+            donutSeries = new List<ChartSeries<double>>
+            {
+                new ChartSeries<double> { Name = "Tickets", Data = donutData}
+            };
+        }
+
         cargando = false;
+
     }
+
+
+
+
+
+
 
     //Para no repetir los chips, tood en la misma estructura
     private RenderFragment ticketStatChip(int Cantidad, EstadoTicket Estado) =>
@@ -147,6 +197,7 @@ else
 
 
 
+    //============================Funciones================================
     //Pluralizo los estados
     string pluralStats(int Cantidad, EstadoTicket estado)
     {
