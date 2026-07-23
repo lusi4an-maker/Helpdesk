@@ -29,10 +29,21 @@ public class CustomAuthenticationStateProvider (ILocalStorageService storage) : 
             {
                 //Trato de parsear el token, lo guardo en lista para armar la autenticacion.
                 var claims = ParseClaimsJwt(token);
-                usuario = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt", "unique_name", "role"));
-                main = usuario;
+                var expSegundos = long.Parse(claims.FirstOrDefault(c => c.Type == "exp")?.Value);
+                var fechaExp = DateTimeOffset.FromUnixTimeSeconds(expSegundos);
+
+                if (fechaExp < DateTimeOffset.UtcNow)
+                {
+                    await storage.RemoveItemAsync("token");
+                    main = new ClaimsPrincipal(new ClaimsIdentity());
+                }
+                else
+                {
+                    usuario = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt", "unique_name", "role"));
+                    main = usuario;
+                }
             }
-            catch (Exception ex)
+            catch
             {
                 annonymusUser = new ClaimsPrincipal(new ClaimsIdentity());
                 main = annonymusUser;
